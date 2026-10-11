@@ -29,7 +29,10 @@
     "capture": "node src/cli/capture-synthesia.js",
     "kbd-test": "node src/cli/keyboard-test.js",
     "rtt": "node src/cli/rtt-probe.js",
-    "echo:windows": "node tools/windows/rtp-echo.js"
+    "echo:windows": "node tools/windows/rtp-echo.js",
+    "midi:sample": "node tools/make-sample-midi.js",
+    "play": "node src/cli/play-midi.js",
+    "play:demo": "node src/cli/play-midi.js samples/demo-two-hands.mid"
   },
   "optionalDependencies": {
     "@julusian/midi": "^3.8.1"

@@ -21,6 +21,7 @@ src/
   constants.js            LED_COUNT=80, 240 octets RGB
   config/                 chargement/validation de la configuration (.env + env)
   midi/messages.js        normalisation MIDI (NoteOn vel 0 -> noteoff, CC, canaux 0..15)
+  midi/smf.js             lecture/écriture de fichiers .mid (SMF)
   state/note-state.js     état par source / canal ; pédale ; All Notes Off
   mapping/note-map.js     note -> LED (linéaire ou table JSON), indices validés [0,79]
   render/renderer.js      priorités de couleur -> trame 240 octets
@@ -30,8 +31,9 @@ src/
   engine.js               assemblage, utilisé par le simulateur ET le service Pi
   adapters/               backend RtMidi, ports auto-reconnectés, routeur 2 chemins
   simulation/scenarios.js scénarios auto-vérifiés
-  cli/                    simulate, run, ports, capture, kbd-test, rtt-probe
+  cli/                    simulate, play-midi, run, ports, capture, kbd-test, rtt-probe
 tools/windows/rtp-echo.js écho côté Windows pour mesurer le RTT RTP-MIDI
+tools/make-sample-midi.js génère samples/demo-two-hands.mid
 deploy/pianoled.service   unité systemd
 config/note-map.example.json  exemple de table (non calibrée)
 docs/                     installation Windows / Raspberry Pi / WLED, journal de validation
@@ -56,6 +58,22 @@ Chaque scénario vérifie lui-même les couleurs attendues (`PASS/FAIL`) ; code 
 La ligne affichée représente les 80 LED : `.` éteinte, `W` clavier, `G`/`B` Synthesia.
 
 > **Valider visuellement les 80 LED** (`npm run demo:all`) avant de passer à l'étape 3.
+
+## Lecture d'un fichier .mid (sans RTP-MIDI)
+
+Le fichier est lu par un parseur SMF interne ([src/midi/smf.js](src/midi/smf.js), formats 0/1/2, running status, changements de tempo, division SMPTE) et rejoué en temps réel dans le **même moteur** que le simulateur et le service.
+
+```powershell
+npm run midi:sample                                   # génère samples/demo-two-hands.mid (ch1 mélodie, ch2 accords)
+npm run play -- samples/demo-two-hands.mid --info     # analyse : pistes, canaux, tessiture, couleur prévue
+npm run play:demo                                     # toutes les notes = source Synthesia (vert/bleu par canal)
+npm run play -- mon-morceau.mid --keyboard-channels 1 # canal 1 joué comme le clavier (blanc), le reste comme Synthesia
+npm run play -- mon-morceau.mid --keyboard-tracks 2 --speed 0.5 --transpose -12 --leds
+```
+
+Options : `--source synthesia|keyboard`, `--keyboard-channels 1,2`, `--keyboard-tracks 2` (numéros affichés par `--info`), `--speed`, `--transpose`, `--start`/`--seconds`, `--include-drums` (canal 10 ignoré par défaut), `--leds` (ligne des LED toutes les 100 ms), plus `--dry-run`, `--host`, `--fps`.
+Les couleurs suivent les règles convenues : clavier blanc prioritaire, Synthesia selon `SYNTH_CHANNEL_COLORS` (défaut vert), notes hors mapping non éclairées.
+À la fin, l'outil affiche le retard de déclenchement des événements par rapport au fichier (côté Node) et les métriques DDP habituelles.
 
 ## Démarrage — Étape 3 (Raspberry Pi 5)
 
@@ -86,7 +104,7 @@ npm start                       # service normal
 | CC 120 / 123 / 124-127 | efface touches **et** notes tenues de ce canal et de cette source uniquement (plus strict que la norme, pour éviter les LED bloquées). CC 121 relâche la pédale. |
 | Notes hors mapping | ignorées pour l'éclairage (compteur `unmapped`, journal en `LOG_LEVEL=debug`), **toujours routées** vers Synthesia. |
 | Mapping | linéaire par défaut (`MIDI_BASE_NOTE=21` → LED 0, non calibré) ou table JSON (`NOTE_MAP_FILE`). Tout indice hors `[0,79]` est refusé au chargement. |
-| Envoi DDP | trame complète 240 octets, 1 paquet, unicast. Sur changement : envoi au tour de boucle suivant (`COALESCE_MS=0`, les événements reçus ensemble partagent une trame), espacement minimal `MIN_FRAME_GAP_MS=5`. Keepalive à `FPS=40`. Un seul socket → ordre préservé. Séquence DDP 1..15 (0 = « non utilisé » dans la norme DDP). |
+| Envoi DDP | trame complète 240 octets, 1 paquet, unicast. Sur changement : envoi au tour de boucle suivant (`COALESCE_MS=0`, les événements reçus ensemble partagent une trame), espacement minimal `MIN_FRAME_GAP_MS=5` (sous Windows, attendu sur la boucle d'événements car les timers y sont arrondis à ~15 ms). Keepalive à `FPS=40`. Un seul socket → ordre préservé. Séquence DDP 1..15 (0 = « non utilisé » dans la norme DDP). |
 | Arrêt | `Ctrl+C`/SIGTERM : `BLACK_FRAMES_ON_STOP` trames noires puis fermeture du socket. **L'extinction n'est pas garantie** si le réseau ou le contrôleur est injoignable (UDP sans accusé). |
 | Panic | `panic`, `panic k`, `panic s` sur l'entrée standard du service ; `kill -USR1 <pid>` sous Linux ; automatique pour une source à la déconnexion de son port. |
 | Déconnexion | un port MIDI qui disparaît → seules les notes de **cette** source sont effacées ; reconnexion automatique (sondage `PORT_POLL_MS`). Une session RTP-MIDI dont le port ALSA reste présent n'est **pas** détectable ainsi : option `SYNTH_STALE_MS`. |
@@ -108,6 +126,7 @@ rafraîchissement du ruban). Méthodes de mesure de bout en bout : [docs/VALIDAT
 | `npm run demo:<scenario>` / `demo:all:dry` | scénarios sur le ruban / sans réseau |
 | `npm run sim` / `sim:dry` | simulateur interactif |
 | `npm run ddp:legacy` | test DDP d'origine, inchangé |
+| `npm run play -- <fichier.mid>` / `play:demo` / `midi:sample` | lecture d'un fichier MIDI sur les LED / démo / génération de l'exemple |
 | `npm run ports` | liste des ports MIDI + `aconnect -l` / `amidi -l` (Linux) |
 | `npm run capture -- --seconds 60` | capture des messages Synthesia, résumé par canal, JSON dans `captures/` |
 | `npm run kbd-test [-- --mode live]` | chemin clavier → Synthesia + vérification blanc |

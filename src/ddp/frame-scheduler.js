@@ -22,7 +22,9 @@ class FrameScheduler {
     keepalive = 'always',
     idleKeepaliveMs = 3000,
     now = monotonicMs,
+    spinShortWaits = process.platform === 'win32',
   }) {
+    this.spinShortWaits = spinShortWaits;
     this.transport = transport;
     this.getFrame = getFrame;
     this.isActive = isActive;
@@ -72,6 +74,14 @@ class FrameScheduler {
     const delay = Math.max(this.coalesceMs, this.minFrameGapMs - sinceLast);
     if (delay <= 0) {
       this.pending = { kind: 'immediate', handle: setImmediate(() => this.flush()) };
+    } else if (this.spinShortWaits && delay < 16) {
+      // Windows timers round up to ~15 ms; short gaps are waited on the event loop instead (bounded CPU).
+      const target = t + delay;
+      const spin = () => {
+        if (this.now() >= target) this.flush();
+        else this.pending.handle = setImmediate(spin);
+      };
+      this.pending = { kind: 'immediate', handle: setImmediate(spin) };
     } else {
       this.pending = { kind: 'timeout', handle: setTimeout(() => this.flush(), delay) };
     }

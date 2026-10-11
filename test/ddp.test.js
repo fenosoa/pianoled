@@ -93,3 +93,16 @@ test('UDP transport sends the full packet to host:port (loopback)', async () => 
   await t.close();
   server.close();
 });
+
+test('minimum frame gap is respected without Windows timer rounding (spin mode)', async () => {
+  const transport = new MemoryTransport();
+  const sch = new FrameScheduler({ transport, getFrame: () => Buffer.alloc(240), keepalive: 'off', minFrameGapMs: 5, spinShortWaits: true });
+  sch.start();
+  sch.markDirty();
+  await new Promise((r) => setTimeout(r, 40));
+  const m = sch.metrics();
+  await sch.stop({ blackFrames: 1 });
+  assert.equal(m.counters.change, 1);
+  assert.ok(m.intervalMs.min >= 5, `interval ${m.intervalMs.min}`);
+  assert.ok(m.waitMs.max < 10, `wait ${m.waitMs.max}`);
+});
