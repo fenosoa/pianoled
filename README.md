@@ -63,12 +63,24 @@ La ligne affichée représente les 80 LED : `.` éteinte, `W` clavier, `G`/`B` S
 
 Le fichier est lu par un parseur SMF interne ([src/midi/smf.js](src/midi/smf.js), formats 0/1/2, running status, changements de tempo, division SMPTE) et rejoué en temps réel dans le **même moteur** que le simulateur et le service.
 
+Exemple avec `C:\Dev\PianoLed\ownpianoled\love.mid` (format 1, 2 pistes, 1039 notes sur le canal 1, D1..E6, 3 min 55 s : tout tient dans les 80 LED avec le mapping par défaut) :
+
+```powershell
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --info          # analyse : pistes, canaux, tessiture, couleur prévue
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid                 # lecture complète, notes en vert (source Synthesia)
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --source keyboard   # même morceau en blanc (source clavier)
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --seconds 30 --leds # 30 premières secondes + ligne des LED
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --start 60 --seconds 20 --speed 0.5
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --dry-run           # sans réseau, métriques seules
+```
+
+`love.mid` n'utilise qu'un canal : `--keyboard-channels` ne peut pas y séparer les mains. Pour tester le chevauchement blanc/vert, utiliser l'exemple généré à deux canaux :
+
 ```powershell
 npm run midi:sample                                   # génère samples/demo-two-hands.mid (ch1 mélodie, ch2 accords)
-npm run play -- samples/demo-two-hands.mid --info     # analyse : pistes, canaux, tessiture, couleur prévue
 npm run play:demo                                     # toutes les notes = source Synthesia (vert/bleu par canal)
-npm run play -- mon-morceau.mid --keyboard-channels 1 # canal 1 joué comme le clavier (blanc), le reste comme Synthesia
-npm run play -- mon-morceau.mid --keyboard-tracks 2 --speed 0.5 --transpose -12 --leds
+npm run play -- samples/demo-two-hands.mid --keyboard-channels 1   # ch1 en blanc (clavier), ch2 en vert
+npm run play -- samples/demo-two-hands.mid --keyboard-tracks 2 --speed 0.5 --transpose -12 --leds
 ```
 
 Options : `--source synthesia|keyboard`, `--keyboard-channels 1,2`, `--keyboard-tracks 2` (numéros affichés par `--info`), `--speed`, `--transpose`, `--start`/`--seconds`, `--include-drums` (canal 10 ignoré par défaut), `--leds` (ligne des LED toutes les 100 ms), plus `--dry-run`, `--host`, `--fps`.
@@ -118,17 +130,164 @@ intervalles entre trames, attente « changement → appel `send()` », délai de
 Ce sont des mesures **côté émetteur Node.js**. Elles **ne mesurent pas la latence optique** (réception WLED, rendu,
 rafraîchissement du ruban). Méthodes de mesure de bout en bout : [docs/VALIDATION.md](docs/VALIDATION.md#méthodes-de-mesure).
 
-## Commandes npm
+## Référence des commandes
+
+Toutes les commandes se lancent depuis `C:\Dev\PianoLed\ownpianoled` (ou `~/ownpianoled` sur le Pi).
+Les options se placent après `--` : `npm run <script> -- <options>`. Chaque script npm correspond à `node <fichier>` : on peut aussi l'appeler directement (par ex. `node src/cli/play-midi.js love.mid`).
+
+**Options communes** à `demo:*`, `sim`, `play`, `start`/`diag`, `kbd-test` :
+
+| Option | Effet | Exemple |
+|---|---|---|
+| `--dry-run` | aucun paquet réseau, compteurs seulement | `npm run demo:all -- --dry-run` |
+| `--host IP` | remplace `WLED_HOST` | `npm run demo:overlap -- --host 192.168.1.41` |
+| `--fps N` | remplace `FPS` (keepalive) | `npm run demo:fast -- --fps 60` |
+| `--log debug` | journal détaillé (notes hors mapping…) | `npm run play -- love.mid --log debug` |
+
+Les réglages peuvent aussi être passés par variable d'environnement, sans modifier `.env` :
+
+```powershell
+$env:BRIGHTNESS="0.1"; npm run demo:all            # PowerShell
+$env:SYNTH_CHANNEL_COLORS="1:green,2:blue"; npm run play:demo
+Remove-Item Env:BRIGHTNESS                          # revenir au .env
+```
+```bash
+BRIGHTNESS=0.1 npm run demo:all                     # bash (Raspberry Pi)
+```
+
+### Tests
 
 | Commande | Rôle |
 |---|---|
-| `npm test` | tests unitaires (état, priorités, mapping, DDP, scheduler, routeur, config) |
-| `npm run demo:<scenario>` / `demo:all:dry` | scénarios sur le ruban / sans réseau |
-| `npm run sim` / `sim:dry` | simulateur interactif |
-| `npm run ddp:legacy` | test DDP d'origine, inchangé |
-| `npm run play -- <fichier.mid>` / `play:demo` / `midi:sample` | lecture d'un fichier MIDI sur les LED / démo / génération de l'exemple |
-| `npm run ports` | liste des ports MIDI + `aconnect -l` / `amidi -l` (Linux) |
-| `npm run capture -- --seconds 60` | capture des messages Synthesia, résumé par canal, JSON dans `captures/` |
-| `npm run kbd-test [-- --mode live]` | chemin clavier → Synthesia + vérification blanc |
-| `npm run diag` / `npm start` | service étape 3 avec / sans journal détaillé |
-| `npm run rtt` + `npm run echo:windows` | mesure RTT RTP-MIDI Pi ↔ Windows |
+| `npm test` | tests unitaires : normalisation MIDI, état, priorités, mapping, DDP, scheduler, routeur, config, fichiers .mid |
+| `npm run ddp:legacy` | test DDP d'origine (`test-ddp.js`, inchangé) : point vert qui parcourt les 80 LED pendant 10 s |
+
+```powershell
+npm test
+node --test test/engine.test.js      # un seul fichier de test
+npm run ddp:legacy
+```
+
+### Scénarios de démonstration (étape 2)
+
+| Commande | Rôle |
+|---|---|
+| `npm run demo:single` | une note clavier (blanc) puis une note Synthesia (vert) |
+| `npm run demo:chord` | accords simultanés des deux sources, relâche partielle |
+| `npm run demo:overlap` | même note : Synthesia → clavier blanc → retour Synthesia → off (ch1 puis ch2) |
+| `npm run demo:scale` | gamme chromatique montante (clavier) puis descendante (Synthesia) |
+| `npm run demo:fast` | 3000 événements aléatoires rapides, deux sources, métriques |
+| `npm run demo:edge` | notes hors mapping, vélocité 0, répétitions, pédale, All Notes Off |
+| `npm run demo:panic` | remise à zéro d'une source puis de toutes |
+| `npm run demo:sweep` | allume chaque note une à une (aide à la calibration note → LED) |
+| `npm run demo:all` | single, chord, overlap, edge, panic, fast |
+| `npm run demo:all:dry` | idem sans réseau |
+
+Option propre : `--hold MS` (durée de maintien des notes, défaut 400).
+
+```powershell
+npm run demo:overlap
+npm run demo:overlap -- --hold 1000            # plus lent, pour bien observer
+npm run demo:sweep -- --hold 200
+npm run demo:all -- --dry-run
+$env:SYNTH_CHANNEL_COLORS="1:green,2:blue"; npm run demo:overlap   # ch1 vert, ch2 bleu
+```
+
+### Simulateur interactif
+
+| Commande | Rôle |
+|---|---|
+| `npm run sim` | invite de commandes, envoi sur le ruban |
+| `npm run sim:dry` | idem sans réseau |
+
+Commandes dans l'invite (canaux 1..16) :
+
+| Saisie | Effet |
+|---|---|
+| `k 60` / `k 60 30` | note 60 clavier (vélocité 100 / 30) |
+| `ku 60` | relâche la note 60 clavier |
+| `s 60` / `s 60 2` | note 60 Synthesia canal 1 / canal 2 |
+| `su 60 2` | relâche la note 60 Synthesia canal 2 |
+| `ped 1 k` / `ped 0 k` | pédale de sustain clavier enfoncée / relâchée (`s` pour Synthesia) |
+| `panic` / `panic k` / `panic s` | efface tout / le clavier / Synthesia |
+| `run overlap` | lance un scénario |
+| `led` / `stats` | ligne des LED / métriques |
+| `q` | quitte (trames noires) |
+
+```text
+> s 60 2
+  .......................................G........................................
+> k 60
+  .......................................W........................................
+> ku 60
+  .......................................G........................................
+```
+
+### Lecture de fichiers MIDI
+
+| Commande | Rôle |
+|---|---|
+| `npm run play -- <fichier.mid> [options]` | rejoue un fichier .mid sur les LED (voir options plus haut) |
+| `npm run midi:sample` | génère `samples/demo-two-hands.mid` |
+| `npm run play:demo` | joue `samples/demo-two-hands.mid` |
+
+```powershell
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --info
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --source keyboard --seconds 45
+npm run play -- C:\Dev\PianoLed\ownpianoled\love.mid --start 90 --seconds 30 --speed 1.5 --leds
+npm run play -- samples/demo-two-hands.mid --keyboard-channels 1
+```
+
+### Étape 3 : ports MIDI, Synthesia, service
+
+| Commande | Rôle |
+|---|---|
+| `npm run ports` | liste les ports MIDI vus par l'application, indique ce que trouvent les sous-chaînes du `.env` ; sous Linux ajoute `aconnect -l` et `amidi -l` |
+| `npm run capture` | enregistre ce qu'envoie Synthesia (`--seconds`, défaut 30 ; `--port` ; `--quiet`), résumé par canal, JSON dans `captures/` |
+| `npm run kbd-test` | injecte une gamme comme si elle venait du clavier → Synthesia + LED blanches (`--hold MS`) |
+| `npm run kbd-test -- --mode live` | vous jouez au clavier pendant `--seconds` ; compare messages reçus / transmis / LED blanches |
+| `npm start` | service : clavier → Synthesia + LED, Synthesia → LED |
+| `npm run diag` | service + journal de chaque message + état des LED et ports (`--status-every MS`, défaut 5000) |
+
+Commandes au clavier pendant `npm start` / `npm run diag` : `panic`, `panic k`, `panic s`, `status`, `stats`, `q`.
+
+```bash
+npm run ports
+npm run capture -- --seconds 60
+npm run capture -- --port "rtpmidid" --seconds 120 --quiet
+npm run kbd-test
+npm run kbd-test -- --mode live --seconds 30
+npm run diag
+npm run diag -- --status-every 2000 --dry-run
+npm start
+kill -USR1 $(pgrep -f src/cli/run.js)          # panic depuis un autre terminal (Linux)
+```
+
+### Mesure du RTT RTP-MIDI
+
+| Commande | Où | Rôle |
+|---|---|---|
+| `npm run echo:windows -- --list` | Windows | liste les ports rtpMIDI |
+| `npm run echo:windows -- --in "<session>" --out "<session>"` | Windows | renvoie les notes du canal 16 |
+| `npm run rtt` | Pi | envoie des sondes et mesure l'aller-retour (`--count`, `--interval`, `--timeout`, `--in`, `--out`) |
+
+```powershell
+npm run echo:windows -- --in "APPDEV10" --out "APPDEV10"     # nom de session observé, à adapter
+```
+```bash
+npm run rtt -- --count 500 --interval 20
+```
+
+### Service systemd (Raspberry Pi)
+
+```bash
+sudo cp deploy/pianoled.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pianoled
+sudo systemctl status pianoled
+journalctl -u pianoled -f
+sudo systemctl kill -s USR1 pianoled      # panic
+sudo systemctl restart pianoled
+sudo systemctl stop pianoled              # trames noires puis arrêt
+```
