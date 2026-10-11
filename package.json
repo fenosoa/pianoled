@@ -1,0 +1,37 @@
+{
+  "name": "ownpianoled",
+  "version": "0.2.0",
+  "description": "MIDI -> LED engine (DDP to WLED/GLEDOPTO) with RTP-MIDI routing for Synthesia",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/engine.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "ddp:legacy": "node test-ddp.js",
+    "sim": "node src/cli/simulate.js interactive",
+    "sim:dry": "node src/cli/simulate.js interactive --dry-run",
+    "demo:single": "node src/cli/simulate.js single",
+    "demo:chord": "node src/cli/simulate.js chord",
+    "demo:overlap": "node src/cli/simulate.js overlap",
+    "demo:scale": "node src/cli/simulate.js scale",
+    "demo:fast": "node src/cli/simulate.js fast",
+    "demo:edge": "node src/cli/simulate.js edge",
+    "demo:panic": "node src/cli/simulate.js panic",
+    "demo:sweep": "node src/cli/simulate.js sweep",
+    "demo:all": "node src/cli/simulate.js all",
+    "demo:all:dry": "node src/cli/simulate.js all --dry-run",
+    "start": "node src/cli/run.js",
+    "diag": "node src/cli/run.js --diag",
+    "ports": "node src/cli/list-ports.js",
+    "capture": "node src/cli/capture-synthesia.js",
+    "kbd-test": "node src/cli/keyboard-test.js",
+    "rtt": "node src/cli/rtt-probe.js",
+    "echo:windows": "node tools/windows/rtp-echo.js"
+  },
+  "optionalDependencies": {
+    "@julusian/midi": "^3.8.1"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "_comment": "Explicit midiNote -> ledIndex table (LED indices 0..79 only). Example values, NOT a calibration: replace after measuring the real strip with `npm run demo:sweep` / diag mode.",
+  "map": {
+    "60": 39,
+    "61": 40,
+    "62": 41,
+    "63": 42,
+    "64": 43,
+    "65": 44,
+    "66": 45,
+    "67": 46,
+    "68": 47,
+    "69": 48,
+    "70": 49,
+    "71": 50,
+    "72": 51
+  }
+}
