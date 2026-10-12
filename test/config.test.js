@@ -13,7 +13,10 @@ test('documented defaults', () => {
   assert.equal(c.ddp.fps, 40);
   assert.equal(c.mapping.mode, 'linear');
   assert.equal(c.mapping.baseNote, 21);
-  assert.equal(c.synthesia.defaultColor, 'green');
+  assert.equal(c.synthesia.defaultColor, 'synthesia')
+  assert.deepEqual(c.colors.named.synthesia, [0x00, 0xcf, 0xf5]);
+  assert.deepEqual(c.colors.keyboard, [0xff, 0x4d, 0x9d]);
+  assert.deepEqual(c.colors.overlap, [0xc5, 0xff, 0x58]);;
   assert.deepEqual(c.synthesia.channelColors, {});
   assert.equal(c.sustainMode, 'keys');
 });

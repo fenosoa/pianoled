@@ -107,7 +107,7 @@ const scenarios = {
       await c.wait();
       c.kbOn(n);
       c.show('keyboard on same note');
-      c.expect(n, 'W', 'keyboard white has priority');
+      c.expect(n, 'O', 'overlap color while both hold the note');
       await c.wait();
       c.kbOff(n);
       c.show('keyboard off, synthesia still held');
@@ -121,8 +121,9 @@ const scenarios = {
     // Reverse order: keyboard first, synthesia released while keyboard held.
     c.kbOn(n);
     c.syOn(n, 0);
+    c.show('keyboard held, synthesia on underneath');
+    c.expect(n, 'O', 'overlap color');
     c.syOff(n, 0);
-    c.show('keyboard held, synthesia on/off underneath');
     c.expect(n, 'W', 'synthesia release does not clear keyboard');
     c.kbOff(n);
     c.expect(n, null, 'final off');
@@ -172,7 +173,7 @@ const scenarios = {
     }
     const genMs = monotonicMs() - t0;
     c.show(`after ${total} random events (${(total / (genMs / 1000)).toFixed(0)} ev/s)`);
-    for (const n of held.keyboard) c.expect(n, 'W', 'held keyboard note still white');
+    for (const n of held.keyboard) c.expect(n, held.synthesia.has(n) ? 'O' : 'W', 'held keyboard note still lit');
     for (const n of held.synthesia) if (!held.keyboard.has(n)) c.expect(n, c.synthSymbol(0), 'held synthesia note colored');
     for (const n of held.keyboard) c.kbOff(n);
     for (const n of held.synthesia) c.syOff(n, 0);

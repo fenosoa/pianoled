@@ -7,13 +7,14 @@ const { noteOn, noteOff, controlChange } = require('../src/midi/messages');
 
 const rgbAt = (engine, led) => [...engine.frame.pixels.subarray(led * 3, led * 3 + 3)];
 
-test('priority white > synthesia > off with color restore (overlap scenario)', () => {
-  const { engine } = makeEngine({ SYNTH_CHANNEL_COLORS: '1:green,2:blue' });
+test('overlap color while both sources hold the note, then synthesia color restored', () => {
+  const { engine } = makeEngine({ SYNTH_CHANNEL_COLORS: '1:green,2:blue', BRIGHTNESS: '1' });
   const led = engine.mapper.ledForNote(60);
   engine.handle(noteOn('synthesia', 60, 90, 1));
   assert.deepEqual(rgbAt(engine, led), [0, 0, 255]);
   engine.handle(noteOn('keyboard', 60));
-  assert.deepEqual(rgbAt(engine, led), [255, 255, 255]);
+  assert.deepEqual(rgbAt(engine, led), [0xc5, 0xff, 0x58]);
+  assert.equal(engine.cell(led).symbol, 'O');
   engine.handle(noteOff('keyboard', 60));
   assert.deepEqual(rgbAt(engine, led), [0, 0, 255]);
   engine.handle(noteOff('synthesia', 60, 0, 1));
@@ -34,7 +35,7 @@ test('synthesia color per channel; default color for unconfigured channels; lowe
 test('brightness scales colors', () => {
   const { engine } = makeEngine({ BRIGHTNESS: '0.1' });
   engine.handle(noteOn('keyboard', 60));
-  assert.deepEqual(rgbAt(engine, engine.mapper.ledForNote(60)), [26, 26, 26]);
+  assert.deepEqual(rgbAt(engine, engine.mapper.ledForNote(60)), [26, 8, 16]);
 });
 
 test('unmapped notes do not alter the frame and are counted', () => {
@@ -70,7 +71,7 @@ test('panic(source) keeps the other source lit', () => {
   engine.handle(noteOn('synthesia', 62));
   engine.panic('keyboard');
   assert.equal(engine.cell(engine.mapper.ledForNote(60)), null);
-  assert.equal(engine.cell(engine.mapper.ledForNote(62)).symbol, 'G');
+  assert.equal(engine.cell(engine.mapper.ledForNote(62)).symbol, 'S');
   engine.panic();
   assert.match(engine.ledString(), /^\.{120}$/);
 });

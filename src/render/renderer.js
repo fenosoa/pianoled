@@ -2,7 +2,7 @@
 
 const { LED_COUNT, FRAME_BYTES } = require('../constants');
 
-const SYMBOLS = { white: 'W', green: 'G', blue: 'B', red: 'R', cyan: 'C', yellow: 'Y' };
+const SYMBOLS = { white: 'W', green: 'G', blue: 'B', red: 'R', cyan: 'C', yellow: 'Y', synthesia: 'S' };
 
 function scale(rgb, brightness) {
   return rgb.map((c) => Math.max(0, Math.min(255, Math.round(c * brightness))));
@@ -14,16 +14,18 @@ function scale(rgb, brightness) {
  */
 function createPalette({ colors, synthesia }) {
   const keyboard = { name: 'keyboard', symbol: 'W', rgb: scale(colors.keyboard, colors.brightness) };
+  const overlap = { name: 'overlap', symbol: 'O', rgb: scale(colors.overlap, colors.brightness) };
   const synthByChannel = [];
   for (let ch = 0; ch < 16; ch++) {
     const name = synthesia.channelColors[ch] || synthesia.defaultColor;
     synthByChannel.push({ name, symbol: SYMBOLS[name] || '*', rgb: scale(colors.named[name], colors.brightness) });
   }
-  return { keyboard, synthForChannel: (ch) => synthByChannel[ch] };
+  return { keyboard, overlap, synthForChannel: (ch) => synthByChannel[ch] };
 }
 
 /**
- * Renders the full 80-pixel frame. Priority: keyboard (white) > synthesia (per channel) > off.
+ * Renders the full frame. Keyboard + Synthesia on the same note -> overlap color;
+ * otherwise keyboard color > synthesia (per channel) > off.
  * When several Synthesia channels hold the same note, the lowest channel number wins.
  */
 function renderFrame(store, mapper, palette) {
@@ -39,7 +41,7 @@ function renderFrame(store, mapper, palette) {
   for (const note of store.litNotes('keyboard').keys()) {
     const led = mapper.ledForNote(note);
     if (led === null) continue;
-    cells[led] = { ...palette.keyboard, channel: -1 };
+    cells[led] = { ...(cells[led] ? palette.overlap : palette.keyboard), channel: -1 };
   }
 
   for (let i = 0; i < LED_COUNT; i++) {
@@ -52,7 +54,7 @@ function renderFrame(store, mapper, palette) {
   return { pixels, cells };
 }
 
-/** One character per LED: '.' off, 'W' keyboard, 'G'/'B' Synthesia colors. */
+/** One character per LED: '.' off, 'W' keyboard, 'O' overlap, 'S'/'G'/'B'... Synthesia colors. */
 function cellsToString(cells) {
   return cells.map((c) => (c ? c.symbol : '.')).join('');
 }

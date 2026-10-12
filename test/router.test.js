@@ -58,7 +58,7 @@ test('both flows simultaneously keep priority', () => {
   const { keyboardIn, synthesiaIn, sym } = setup();
   synthesiaIn.emit('message', [0x90, 60, 90], 1);
   keyboardIn.emit('message', [0x90, 60, 90], 2);
-  assert.equal(sym(60), 'W');
+  assert.equal(sym(60), 'O');
   keyboardIn.emit('message', [0x80, 60, 0], 3);
   assert.equal(sym(60), 'G');
 });

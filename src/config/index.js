@@ -12,7 +12,11 @@ const NAMED_COLORS = {
   red: [255, 0, 0],
   cyan: [0, 255, 255],
   yellow: [255, 200, 0],
+  synthesia: [0x00, 0xcf, 0xf5], // #00CFF5
 };
+
+const DEFAULT_KEYBOARD_COLOR = [0xff, 0x4d, 0x9d]; // #FF4D9D
+const DEFAULT_OVERLAP_COLOR = [0xc5, 0xff, 0x58]; // #C5FF58
 
 class ConfigError extends Error {}
 
@@ -105,10 +109,12 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
   const colors = { ...NAMED_COLORS };
   if (env.COLOR_GREEN) colors.green = parseRgb(env.COLOR_GREEN, 'COLOR_GREEN');
   if (env.COLOR_BLUE) colors.blue = parseRgb(env.COLOR_BLUE, 'COLOR_BLUE');
-  const keyboardColor = env.COLOR_KEYBOARD ? parseRgb(env.COLOR_KEYBOARD, 'COLOR_KEYBOARD') : colors.white;
+  if (env.COLOR_SYNTHESIA) colors.synthesia = parseRgb(env.COLOR_SYNTHESIA, 'COLOR_SYNTHESIA');
+  const keyboardColor = env.COLOR_KEYBOARD ? parseRgb(env.COLOR_KEYBOARD, 'COLOR_KEYBOARD') : DEFAULT_KEYBOARD_COLOR.slice();
+  const overlapColor = env.COLOR_OVERLAP ? parseRgb(env.COLOR_OVERLAP, 'COLOR_OVERLAP') : DEFAULT_OVERLAP_COLOR.slice();
   const colorNames = Object.keys(colors);
 
-  const synthDefault = (env.SYNTH_DEFAULT_COLOR || 'green').toLowerCase();
+  const synthDefault = (env.SYNTH_DEFAULT_COLOR || 'synthesia').toLowerCase();
   if (!colorNames.includes(synthDefault)) throw new ConfigError(`SYNTH_DEFAULT_COLOR: unknown color "${synthDefault}"`);
 
   const mappingMode = readEnum(env, 'MAPPING_MODE', env.NOTE_MAP_FILE ? 'table' : 'linear', ['linear', 'table']);
@@ -131,6 +137,7 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
     colors: {
       named: colors,
       keyboard: keyboardColor,
+      overlap: overlapColor,
       brightness: readNumber(env, 'BRIGHTNESS', 0.25, 0, 1),
     },
     synthesia: {
