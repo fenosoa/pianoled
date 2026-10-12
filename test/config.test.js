@@ -7,7 +7,7 @@ const { parseEnv } = require('../src/config/env-file');
 
 test('documented defaults', () => {
   const c = loadConfig({});
-  assert.equal(c.ledCount, 119);
+  assert.equal(c.ledCount, 120);
   assert.equal(c.ddp.host, '192.168.1.41');
   assert.equal(c.ddp.port, 4048);
   assert.equal(c.ddp.fps, 40);
@@ -20,7 +20,7 @@ test('documented defaults', () => {
 
 test('LED_COUNT cannot be changed', () => {
   assert.throws(() => loadConfig({ LED_COUNT: '798' }), ConfigError);
-  assert.equal(loadConfig({ LED_COUNT: '119' }).ledCount, 119);
+  assert.equal(loadConfig({ LED_COUNT: '120' }).ledCount, 120);
 });
 
 test('channel colors use 1..16 in config and 0..15 in code', () => {

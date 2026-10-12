@@ -59,7 +59,7 @@ test('frame changes trigger one DDP frame; unchanged state sends nothing extra',
   await new Promise((r) => setTimeout(r, 20));
   assert.equal(transport.packets.length, initial + 1);
   const last = transport.packets.at(-1);
-  assert.equal(last.length, 367);
+  assert.equal(last.length, 370);
   await engine.stop();
   assert.ok(transport.packets.at(-1).subarray(10).every((b) => b === 0));
 });
@@ -72,7 +72,7 @@ test('panic(source) keeps the other source lit', () => {
   assert.equal(engine.cell(engine.mapper.ledForNote(60)), null);
   assert.equal(engine.cell(engine.mapper.ledForNote(62)).symbol, 'G');
   engine.panic();
-  assert.match(engine.ledString(), /^\.{119}$/);
+  assert.match(engine.ledString(), /^\.{120}$/);
 });
 
 test('table mapping via NOTE_MAP_FILE', () => {

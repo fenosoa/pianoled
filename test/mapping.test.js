@@ -13,25 +13,25 @@ test('linear mapping: base note -> LED 0, 107 notes, outside ignored', () => {
   assert.equal(mappedNotes(m).length, 107);
 });
 
-test('linear mapping with offset and reverse never leaves [0,118]', () => {
+test('linear mapping with offset and reverse never leaves [0,119]', () => {
   const m = createNoteMapper({ mode: 'linear', baseNote: 60, offset: 10, reverse: true });
-  assert.equal(m.ledForNote(60), 108);
-  assert.equal(m.ledForNote(50), 118);
+  assert.equal(m.ledForNote(60), 109);
+  assert.equal(m.ledForNote(50), 119);
   assert.equal(m.ledForNote(49), null);
   for (let n = 0; n <= 127; n++) {
     const led = m.ledForNote(n);
-    if (led !== null) assert.ok(led >= 0 && led <= 118);
+    if (led !== null) assert.ok(led >= 0 && led <= 119);
   }
   assert.equal(m.ledForNote(-1), null);
   assert.equal(m.ledForNote(60.5), null);
 });
 
 test('table mapping: explicit entries only, strict validation', () => {
-  const m = createNoteMapper({ mode: 'table', table: { 60: 0, 61: 2, 62: 118 } });
+  const m = createNoteMapper({ mode: 'table', table: { 60: 0, 61: 2, 62: 119 } });
   assert.equal(m.ledForNote(60), 0);
   assert.equal(m.ledForNote(61), 2);
   assert.equal(m.ledForNote(63), null);
-  assert.throws(() => createNoteMapper({ mode: 'table', table: { 60: 119 } }), /outside/);
+  assert.throws(() => createNoteMapper({ mode: 'table', table: { 60: 120 } }), /outside/);
   assert.throws(() => createNoteMapper({ mode: 'table', table: { 60: -1 } }), /outside/);
   assert.throws(() => createNoteMapper({ mode: 'table', table: { 60: 1.5 } }), /outside/);
   assert.throws(() => createNoteMapper({ mode: 'table', table: { 128: 1 } }), /invalid MIDI note/);

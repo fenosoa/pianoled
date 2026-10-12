@@ -6,22 +6,22 @@ const { encodeDdpPacket, decodeDdpHeader, nextSequence } = require('../src/ddp/p
 const { FrameScheduler } = require('../src/ddp/frame-scheduler');
 const { MemoryTransport, UdpTransport } = require('../src/ddp/transport');
 
-test('DDP header matches the validated test-ddp.js layout for 119 LEDs', () => {
-  const pixels = Buffer.alloc(357, 7);
+test('DDP header matches the validated test-ddp.js layout for 120 LEDs', () => {
+  const pixels = Buffer.alloc(360, 7);
   const p = encodeDdpPacket(pixels, 5);
-  assert.equal(p.length, 367);
-  assert.deepEqual([...p.subarray(0, 10)], [0x41, 0x05, 0x0b, 0x01, 0, 0, 0, 0, 0x01, 0x65]);
+  assert.equal(p.length, 370);
+  assert.deepEqual([...p.subarray(0, 10)], [0x41, 0x05, 0x0b, 0x01, 0, 0, 0, 0, 0x01, 0x68]);
   const h = decodeDdpHeader(p);
   assert.equal(h.version, 1);
   assert.equal(h.push, true);
-  assert.equal(h.length, 357);
+  assert.equal(h.length, 360);
   assert.equal(p[10], 7);
 });
 
-test('DDP encoder rejects any frame that is not exactly 357 bytes', () => {
+test('DDP encoder rejects any frame that is not exactly 360 bytes', () => {
   assert.throws(() => encodeDdpPacket(Buffer.alloc(239), 1), RangeError);
   assert.throws(() => encodeDdpPacket(Buffer.alloc(798 * 3), 1), RangeError);
-  assert.throws(() => encodeDdpPacket(Buffer.alloc(357), 16), RangeError);
+  assert.throws(() => encodeDdpPacket(Buffer.alloc(360), 16), RangeError);
 });
 
 test('sequence cycles 1..15, skipping reserved 0', () => {
@@ -33,11 +33,11 @@ test('sequence cycles 1..15, skipping reserved 0', () => {
 
 test('scheduler coalesces changes in the same tick into one frame and stops with black frames', async () => {
   const transport = new MemoryTransport();
-  let frame = Buffer.alloc(357);
+  let frame = Buffer.alloc(360);
   const sch = new FrameScheduler({ transport, getFrame: () => frame, keepalive: 'off', minFrameGapMs: 0 });
   sch.start();
   assert.equal(transport.packets.length, 1);
-  frame = Buffer.alloc(357, 1);
+  frame = Buffer.alloc(360, 1);
   sch.markDirty();
   sch.markDirty();
   sch.markDirty();
@@ -53,7 +53,7 @@ test('scheduler coalesces changes in the same tick into one frame and stops with
 
 test('scheduler keepalive resends the current frame at the configured rate', async () => {
   const transport = new MemoryTransport();
-  const sch = new FrameScheduler({ transport, getFrame: () => Buffer.alloc(357), fps: 100, keepalive: 'always' });
+  const sch = new FrameScheduler({ transport, getFrame: () => Buffer.alloc(360), fps: 100, keepalive: 'always' });
   sch.start();
   await new Promise((r) => setTimeout(r, 120));
   await sch.stop({ blackFrames: 1 });
@@ -63,7 +63,7 @@ test('scheduler keepalive resends the current frame at the configured rate', asy
 test('scheduler "active" keepalive goes quiet when idle and dark', async () => {
   const transport = new MemoryTransport();
   const sch = new FrameScheduler({
-    transport, getFrame: () => Buffer.alloc(357), fps: 100, keepalive: 'active', idleKeepaliveMs: 0, isActive: () => false,
+    transport, getFrame: () => Buffer.alloc(360), fps: 100, keepalive: 'active', idleKeepaliveMs: 0, isActive: () => false,
   });
   sch.start();
   await new Promise((r) => setTimeout(r, 80));
@@ -86,7 +86,7 @@ test('UDP transport sends the full packet to host:port (loopback)', async () => 
   await new Promise((r) => server.bind(0, '127.0.0.1', r));
   const received = new Promise((r) => server.once('message', r));
   const t = new UdpTransport({ host: '127.0.0.1', port: server.address().port });
-  const packet = encodeDdpPacket(Buffer.alloc(357, 9), 1);
+  const packet = encodeDdpPacket(Buffer.alloc(360, 9), 1);
   assert.equal(await t.send(packet), null);
   const msg = await received;
   assert.deepEqual(msg, packet);
@@ -96,7 +96,7 @@ test('UDP transport sends the full packet to host:port (loopback)', async () => 
 
 test('minimum frame gap is respected without Windows timer rounding (spin mode)', async () => {
   const transport = new MemoryTransport();
-  const sch = new FrameScheduler({ transport, getFrame: () => Buffer.alloc(357), keepalive: 'off', minFrameGapMs: 5, spinShortWaits: true });
+  const sch = new FrameScheduler({ transport, getFrame: () => Buffer.alloc(360), keepalive: 'off', minFrameGapMs: 5, spinShortWaits: true });
   sch.start();
   sch.markDirty();
   await new Promise((r) => setTimeout(r, 40));

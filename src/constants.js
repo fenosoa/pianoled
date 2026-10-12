@@ -1,7 +1,7 @@
 'use strict';
 
-// LED_COUNT is deliberately not configurable: the piano strip has 119 LEDs (indices 0..118).
-const LED_COUNT = 119;
+// LED_COUNT is deliberately not configurable: the piano strip uses 120 LEDs (indices 0..119).
+const LED_COUNT = 120;
 const BYTES_PER_PIXEL = 3;
 
 module.exports = Object.freeze({
