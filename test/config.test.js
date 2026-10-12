@@ -46,3 +46,11 @@ test('invalid numeric values are rejected', () => {
 test('.env parser', () => {
   assert.deepEqual(parseEnv('# c\nA=1\nB="x y"\nC=z # comment\n\nbad\n'), { A: '1', B: 'x y', C: 'z' });
 });
+
+test('FORWARD_SYNTHESIA is off by default; KEYBOARD_OUT_PORT falls back to KEYBOARD_IN_PORT', () => {
+  assert.equal(loadConfig({}).midi.forwardSynthesia, false);
+  const m = loadConfig({ FORWARD_SYNTHESIA: '1', KEYBOARD_IN_PORT: 'Digital Keyboard' }).midi;
+  assert.equal(m.forwardSynthesia, true);
+  assert.equal(m.keyboardOut, 'Digital Keyboard');
+  assert.equal(loadConfig({ KEYBOARD_IN_PORT: 'a', KEYBOARD_OUT_PORT: 'b' }).midi.keyboardOut, 'b');
+});

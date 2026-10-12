@@ -118,3 +118,56 @@ test('ManagedPort reconnects when the port disappears and comes back', () => {
   assert.deepEqual(events, ['+Keyboard A 20:0', '-Keyboard A 20:0', '+Keyboard A 24:0', '-Keyboard A 24:0']);
   assert.deepEqual(opened, ['Keyboard A 20:0', 'Keyboard A 24:0']);
 });
+
+test('Synthesia is forwarded to the keyboard only when forwardSynthesia is enabled', () => {
+  const off = setup({ keyboardOut: new FakeOut() });
+  off.synthesiaIn.emit('message', [0x90, 62, 90], 1);
+  assert.equal(off.router.keyboardOut.sent.length, 0);
+
+  const keyboardOut = new FakeOut();
+  const on = setup({ keyboardOut, forwardSynthesia: true });
+  on.synthesiaIn.emit('message', [0x90, 62, 90], 1);
+  on.synthesiaIn.emit('message', [0xb0, 64, 127], 2);
+  assert.deepEqual(keyboardOut.sent, [[0x90, 62, 90], [0xb0, 64, 127]]);
+  assert.equal(on.sym(62), 'G');
+  assert.equal(on.router.stats.synthToKeyboard, 2);
+});
+
+test('keyboard notes are never sent back to the keyboard output', () => {
+  const keyboardOut = new FakeOut();
+  const { keyboardIn } = setup({ keyboardOut, forwardSynthesia: true });
+  keyboardIn.emit('message', [0x90, 60, 90], 1);
+  assert.equal(keyboardOut.sent.length, 0);
+});
+
+test('Synthesia echo of a keyboard note is dropped before reaching the keyboard output', () => {
+  const keyboardOut = new FakeOut();
+  const { keyboardIn, synthesiaIn } = setup({ keyboardOut, forwardSynthesia: true, echoGuardMs: 50 });
+  keyboardIn.emit('message', [0x90, 60, 90], 100);
+  synthesiaIn.emit('message', [0x90, 60, 90], 120);
+  assert.equal(keyboardOut.sent.length, 0);
+});
+
+test('held notes and pedal are released on the keyboard when Synthesia disconnects or the router stops', () => {
+  const keyboardOut = new FakeOut();
+  const { synthesiaIn, router } = setup({ keyboardOut, forwardSynthesia: true });
+  synthesiaIn.emit('message', [0x91, 62, 90], 1);
+  synthesiaIn.emit('message', [0x91, 64, 90], 2);
+  synthesiaIn.emit('message', [0x81, 64, 0], 3);
+  synthesiaIn.emit('message', [0xb1, 64, 127], 4);
+  keyboardOut.sent.length = 0;
+  synthesiaIn.emit('disconnected', 'x');
+  assert.deepEqual(keyboardOut.sent, [[0x81, 62, 0], [0xb1, 64, 0]]);
+  keyboardOut.sent.length = 0;
+  router.stop();
+  assert.equal(keyboardOut.sent.length, 0);
+});
+
+test('keyboard output down: Synthesia drops are counted, LEDs still work', () => {
+  const keyboardOut = new FakeOut();
+  keyboardOut.up = false;
+  const { synthesiaIn, router, sym } = setup({ keyboardOut, forwardSynthesia: true });
+  synthesiaIn.emit('message', [0x90, 62, 90], 1);
+  assert.equal(router.stats.synthToKeyboardDropped, 1);
+  assert.equal(sym(62), 'G');
+});

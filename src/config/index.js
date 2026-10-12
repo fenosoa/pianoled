@@ -150,6 +150,9 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
       synthesiaIn: env.SYNTHESIA_IN_PORT || '',
       synthesiaOut: env.SYNTHESIA_OUT_PORT || '',
       forwardKeyboard: readBool(env, 'FORWARD_KEYBOARD', true),
+      // Opt-in: play Synthesia's notes on the keyboard's own sound engine (keyboard MIDI out).
+      forwardSynthesia: readBool(env, 'FORWARD_SYNTHESIA', false),
+      keyboardOut: env.KEYBOARD_OUT_PORT || env.KEYBOARD_IN_PORT || '',
       pollMs: readInt(env, 'PORT_POLL_MS', 2000, 200, 60000),
       echoGuardMs: readInt(env, 'ECHO_GUARD_MS', 0, 0, 1000),
       synthStaleMs: readInt(env, 'SYNTH_STALE_MS', 0, 0, 3600000),

@@ -79,6 +79,17 @@ SYNTHESIA_OUT_PORT=<même port rtpmidid, côté sortie>
 - **A. Par l'application** (défaut, `FORWARD_KEYBOARD=1`) : le service relit le clavier, transmet chaque message de canal sans le modifier vers `SYNTHESIA_OUT_PORT` (avant le traitement LED), et compte les pertes.
 - **B. Par ALSA** (`FORWARD_KEYBOARD=0`) : `aconnect '<clavier>' '<port rtpmidid>'` (non persistant au redémarrage). Le service ne fait alors que lire.
 
+### Son : Synthesia → clavier (optionnel)
+
+Par défaut, les notes de Synthesia ne servent qu'aux LED : le clavier ne les joue pas. Pour que le piano joue aussi ce que Synthesia joue :
+
+```ini
+FORWARD_SYNTHESIA=1
+KEYBOARD_OUT_PORT=            # vide = même port que KEYBOARD_IN_PORT (sortie USB du clavier)
+```
+
+Les messages de canal de Synthesia sont alors envoyés tels quels au clavier, en plus des LED. Les notes encore tenues sont relâchées (Note Off, pédale relevée) si Synthesia se déconnecte ou si l'application s'arrête. Le clavier doit répondre au canal MIDI utilisé par Synthesia, et son « Local Control » doit rester actif pour que ses propres touches sonnent. Si Synthesia renvoie en écho les notes reçues, activer `ECHO_GUARD_MS` (ex. 50) : l'écho est alors écarté avant les LED et avant le clavier.
+
 Ne pas activer A et B simultanément : Synthesia recevrait chaque note en double. Vérifier avec `aconnect -l` qu'aucune connexion clavier → rtpmidid n'existe en mode A.
 
 ## 4. Tests par sens, puis combinés

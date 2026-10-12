@@ -27,7 +27,7 @@ async function main() {
   const midi = loadMidi();
   const engine = new LedEngine(config, { logger });
   printBanner(engine);
-  console.log(`MIDI: keyboardIn="${m.keyboardIn}" synthesiaIn="${m.synthesiaIn}" synthesiaOut="${m.synthesiaOut}" forwardKeyboard=${m.forwardKeyboard} echoGuard=${m.echoGuardMs}ms synthStale=${m.synthStaleMs}ms`);
+  console.log(`MIDI: keyboardIn="${m.keyboardIn}" synthesiaIn="${m.synthesiaIn}" synthesiaOut="${m.synthesiaOut}" forwardKeyboard=${m.forwardKeyboard} forwardSynthesia=${m.forwardSynthesia} keyboardOut="${m.forwardSynthesia ? m.keyboardOut : ''}" echoGuard=${m.echoGuardMs}ms synthStale=${m.synthStaleMs}ms`);
 
   const mk = (direction, match, label) => (match ? new ManagedPort({ midi, direction, match, label, pollMs: m.pollMs, logger }) : null);
   const keyboardIn = mk('input', m.keyboardIn, 'keyboard-in');
@@ -35,22 +35,25 @@ async function main() {
   const synthesiaOut = m.forwardKeyboard ? mk('output', m.synthesiaOut, 'synthesia-out') : null;
   if (m.forwardKeyboard && !synthesiaOut) logger.warn('FORWARD_KEYBOARD=1 but SYNTHESIA_OUT_PORT is empty: keyboard notes will not reach Synthesia');
 
+  const keyboardOut = m.forwardSynthesia ? mk('output', m.keyboardOut, 'keyboard-out') : null;
+  if (m.forwardSynthesia && !keyboardOut) logger.warn('FORWARD_SYNTHESIA=1 but no KEYBOARD_OUT_PORT/KEYBOARD_IN_PORT: Synthesia notes will not reach the keyboard');
+
   const router = new MidiRouter({
-    engine, keyboardIn, synthesiaIn, synthesiaOut,
+    engine, keyboardIn, synthesiaIn, synthesiaOut, keyboardOut, forwardSynthesia: m.forwardSynthesia,
     forwardKeyboard: m.forwardKeyboard, echoGuardMs: m.echoGuardMs, synthStaleMs: m.synthStaleMs, diag, logger,
   });
 
   engine.start();
   router.start();
-  [keyboardIn, synthesiaIn, synthesiaOut].forEach((p) => p && p.start());
+  [keyboardIn, synthesiaIn, synthesiaOut, keyboardOut].forEach((p) => p && p.start());
 
   const status = () => {
     const s = engine.snapshot();
     const port = (p) => (p ? (p.connected ? `up("${p.portName}")` : 'down') : 'off');
     console.log(`[status] ${s.leds}`);
     console.log(
-      `[status] kbd-in=${port(keyboardIn)} syn-in=${port(synthesiaIn)} syn-out=${port(synthesiaOut)} | ` +
-        `kbdIn=${router.stats.keyboardIn} fwd=${router.stats.forwarded} fwdDrop=${router.stats.forwardDropped} synIn=${router.stats.synthesiaIn} echoDrop=${router.stats.echoDropped} | ` +
+      `[status] kbd-in=${port(keyboardIn)} syn-in=${port(synthesiaIn)} syn-out=${port(synthesiaOut)} kbd-out=${port(keyboardOut)} | ` +
+        `kbdIn=${router.stats.keyboardIn} fwd=${router.stats.forwarded} fwdDrop=${router.stats.forwardDropped} synIn=${router.stats.synthesiaIn} toKbd=${router.stats.synthToKeyboard} toKbdDrop=${router.stats.synthToKeyboardDropped} echoDrop=${router.stats.echoDropped} | ` +
         `ddp frames=${s.ddp.scheduler.frames} fps=${s.ddp.scheduler.fps.toFixed(1)} errors=${s.ddp.transport.errors}`
     );
   };
@@ -61,8 +64,8 @@ async function main() {
     if (stopping) return;
     stopping = true;
     if (statusTimer) clearInterval(statusTimer);
-    router.stop();
-    [keyboardIn, synthesiaIn, synthesiaOut].forEach((p) => p && p.stop());
+    router.stop(); // releases notes still sounding on the keyboard before its port closes
+    [keyboardIn, synthesiaIn, synthesiaOut, keyboardOut].forEach((p) => p && p.stop());
     printMetrics(engine);
     await engine.stop();
     console.log('Stopped: black frames sent (not guaranteed if WLED is unreachable), socket closed.');
