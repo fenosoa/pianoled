@@ -38,12 +38,12 @@ Lecture honnête :
 | Routeur : clavier transmis tel quel, Synthesia jamais réinjecté, priorité, déconnexion d'une source, garde anti-écho (tests unitaires avec ports simulés) | ✅ |
 | Reconnexion automatique d'un port qui disparaît/réapparaît (test unitaire) | ✅ |
 | `@julusian/midi` sous Windows : énumération (port `APPDEV10` observé en entrée et sortie) et ouverture réelle du port en dry-run | ✅ |
-| Installation sur Raspberry Pi 5, `rtpmidid`, ports ALSA | ⏳ |
+| Installation sur Raspberry Pi 5, `rtpmidid`, ports ALSA | ✅ Debian 13 trixie aarch64, Ethernet 192.168.1.44, rtpmidid fonctionnel, clavier `Oxygen 61` et session `APPDEV10` détectés (2026-10-11) |
 | Type de raccordement du clavier | ✅ **USB** (confirmé 2026-10-11) — modèle class compliant à vérifier au branchement sur le Pi (`aconnect -l`) |
 | Règle vert/bleu de Synthesia (`npm run capture`) | ⏳ — par défaut tout canal = vert |
-| Critère 1 : touche → LED blanche + note reçue par Synthesia | ⏳ `npm run kbd-test` puis `--mode live` |
-| Critère 2 : Synthesia → LED vert/bleu selon la règle observée | ⏳ |
-| Critère 3 : deux flux simultanés, sans feedback | ⏳ `npm run diag` (`fwdDrop`, `echoDrop`) |
+| Critère 1 : touche → LED blanche + note reçue par Synthesia | ✅ `npm run diag`, confirmé par l'utilisateur (2026-10-11) ; transmission vers Synthesia par routage ALSA (`FORWARD_KEYBOARD=0`) |
+| Critère 2 : Synthesia → LED vert/bleu selon la règle observée | 🟡 LED vertes confirmées (2026-10-11) ; règle vert/bleu à fixer après `npm run capture` |
+| Critère 3 : deux flux simultanés, sans feedback | 🟡 fonctionnement simultané confirmé par l'utilisateur ; compteurs `echoDrop` et test d'écho à consigner |
 | Critère 4 : séquences rapides + métriques | ⏳ sur le Pi : `npm run demo:fast`, `npm run rtt` |
 | Critère 5 : déconnexion/reconnexion sans LED bloquées | ⏳ SETUP-RPI §4 point 6 |
 
@@ -55,7 +55,7 @@ Lecture honnête :
 
 | Mesure | Valeur | Conditions |
 |---|---|---|
-| RTT RTP-MIDI Pi ↔ Windows | ⏳ | Ethernet / Wi-Fi ? |
+| RTT RTP-MIDI Pi ↔ Windows | ⏳ | Pi en Ethernet (192.168.1.43) |
 | Latence optique clavier → LED | ⏳ | |
 | Latence optique Synthesia → LED | ⏳ | |
 

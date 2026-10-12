@@ -7,10 +7,10 @@ Rien ci-dessous n'est exécuté automatiquement. Chaque commande système est à
 | Élément | Comment le déterminer | Valeur |
 |---|---|---|
 | Raccordement du clavier | prise USB du clavier | ✅ **USB** (confirmé 2026-10-11) : option 1 ci-dessous |
-| Nom ALSA du clavier | `npm run ports` / `aconnect -l` une fois branché | _à relever_ |
-| Nom des ports rtpmidid | `aconnect -l` après connexion de la session Windows | _à relever_ |
+| Nom ALSA du clavier | `npm run ports` / `aconnect -l` une fois branché | ✅ `Oxygen 61:Oxygen 61Oxygen 61` (client 16, USB, class compliant) → `KEYBOARD_IN_PORT=Oxygen 61` |
+| Nom des ports rtpmidid | `aconnect -l` après connexion de la session Windows | ✅ `rtpmidid:APPDEV10` (128:2, session Windows) et `rtpmidid:Network Export` (128:0). Routage clavier → Synthesia fait par ALSA (16:0 → 128:2) → `FORWARD_KEYBOARD=0` |
 | Règle vert/bleu de Synthesia | `npm run capture` | _à relever_ |
-| Lien réseau du Pi | Ethernet (préféré) ou Wi-Fi | _à confirmer_ |
+| Lien réseau du Pi | `ip -4 addr` | ✅ **Ethernet** `eth0`, 192.168.1.44 (DHCP) — Debian 13 trixie aarch64, hôte `picapture`, utilisateur `shino` (2026-10-11) |
 
 ### Options de raccordement du clavier
 
