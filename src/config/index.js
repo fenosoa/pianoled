@@ -16,7 +16,7 @@ const NAMED_COLORS = {
 };
 
 const DEFAULT_KEYBOARD_COLOR = [0xff, 0x4d, 0x9d]; // #FF4D9D
-const DEFAULT_OVERLAP_COLOR = [0xc5, 0xff, 0x58]; // #C5FF58
+const DEFAULT_OVERLAP_COLOR = [0x00, 0xff, 0x00]; // #00FF00
 
 class ConfigError extends Error {}
 

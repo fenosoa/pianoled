@@ -13,7 +13,7 @@ test('overlap color while both sources hold the note, then synthesia color resto
   engine.handle(noteOn('synthesia', 60, 90, 1));
   assert.deepEqual(rgbAt(engine, led), [0, 0, 255]);
   engine.handle(noteOn('keyboard', 60));
-  assert.deepEqual(rgbAt(engine, led), [0xc5, 0xff, 0x58]);
+  assert.deepEqual(rgbAt(engine, led), [0x00, 0xff, 0x00]);
   assert.equal(engine.cell(led).symbol, 'O');
   engine.handle(noteOff('keyboard', 60));
   assert.deepEqual(rgbAt(engine, led), [0, 0, 255]);

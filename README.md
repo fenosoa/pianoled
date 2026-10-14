@@ -84,7 +84,7 @@ npm run play -- samples/demo-two-hands.mid --keyboard-tracks 2 --speed 0.5 --tra
 ```
 
 Options : `--source synthesia|keyboard`, `--keyboard-channels 1,2`, `--keyboard-tracks 2` (numéros affichés par `--info`), `--speed`, `--transpose`, `--start`/`--seconds`, `--include-drums` (canal 10 ignoré par défaut), `--leds` (ligne des LED toutes les 100 ms), plus `--dry-run`, `--host`, `--fps`.
-Les couleurs suivent les règles convenues : clavier rose `#FF4D9D`, Synthesia `#00CFF5` (ou selon `SYNTH_CHANNEL_COLORS`), même note sur les deux sources `#C5FF58`, notes hors mapping non éclairées.
+Les couleurs suivent les règles convenues : clavier rose `#FF4D9D`, Synthesia `#00CFF5` (ou selon `SYNTH_CHANNEL_COLORS`), même note sur les deux sources `#00FF00`, notes hors mapping non éclairées.
 À la fin, l'outil affiche le retard de déclenchement des événements par rapport au fichier (côté Node) et les métriques DDP habituelles.
 
 ## Démarrage — Étape 3 (Raspberry Pi 5)
@@ -108,7 +108,7 @@ npm start                       # service normal
 |---|---|
 | Canaux | `0..15` dans le code ; `1..16` dans `.env` (`SYNTH_CHANNEL_COLORS`) et les journaux (`ch1`). |
 | Sources | `keyboard` et `synthesia` stockées séparément, par canal. Jamais fusionnées. |
-| Priorité | clavier + Synthesia sur la même note → `COLOR_OVERLAP` (`#C5FF58`) ; clavier seul → `COLOR_KEYBOARD` (`#FF4D9D`) ; Synthesia seul → couleur du canal ; sinon éteint. Plusieurs canaux Synthesia sur la même note : le plus petit numéro de canal l'emporte. |
+| Priorité | clavier + Synthesia sur la même note → `COLOR_OVERLAP` (`#00FF00`) ; clavier seul → `COLOR_KEYBOARD` (`#FF4D9D`) ; Synthesia seul → couleur du canal ; sinon éteint. Plusieurs canaux Synthesia sur la même note : le plus petit numéro de canal l'emporte. |
 | Couleur Synthesia | `SYNTH_DEFAULT_COLOR` (défaut **synthesia** = `COLOR_SYNTHESIA`, `#00CFF5`, pour tous les canaux) + `SYNTH_CHANNEL_COLORS=1:green,2:blue`. **Aucune** hypothèse main gauche/droite : à fixer après `npm run capture`. |
 | Doublons | état booléen par (source, canal, note) : NoteOn répétés idempotents, le premier NoteOff libère. Si deux producteurs envoient la même note sur la même source/canal, le premier NoteOff l'éteint. NoteOff orphelin ignoré. |
 | NoteOn vel 0 | traité comme NoteOff. |
