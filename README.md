@@ -291,3 +291,19 @@ sudo systemctl kill -s USR1 pianoled      # panic
 sudo systemctl restart pianoled
 sudo systemctl stop pianoled              # trames noires puis arrêt
 ```
+
+## Panneau de contrôle web (React)
+
+Interface pour lire/modifier le `.env` et relancer le service sans toucher au terminal.
+
+```bash
+npm run ui:install   # une fois (dépendances de ui/)
+npm run ui:build     # compile l'interface dans ui/dist
+npm run control      # http://127.0.0.1:8787 — démarre aussi le service
+```
+
+- `Enregistrer` écrit le `.env` (commentaires conservés) ; `Appliquer maintenant` enregistre puis relance le service ; « Appliquer automatiquement » le fait 0,9 s après la dernière modification valide.
+- La validation utilise le même `loadConfig` que le service : une valeur invalide bloque l'application.
+- Arrêt/relance gracieux (trames noires envoyées), bouton Panic, journal du service en direct, liste des ports MIDI détectés.
+- Options : `--port 8787`, `--host 0.0.0.0` (sans authentification : réseau de confiance uniquement), `--no-autostart`. Développement UI : `npm run control -- --no-autostart` + `npm run ui:dev` (http://localhost:5173).
+- Le service lancé par le panneau ignore les variables d'environnement système portant les mêmes noms : le `.env` fait foi.

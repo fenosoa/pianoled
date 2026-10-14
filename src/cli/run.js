@@ -74,6 +74,14 @@ async function main() {
   process.on('SIGINT', () => shutdown(0));
   process.on('SIGTERM', () => shutdown(0));
   if (process.platform !== 'win32') process.on('SIGUSR1', () => engine.panic());
+  // Control channel used by the web panel (npm run control): graceful stop works on Windows too.
+  if (process.send) {
+    process.on('message', (msg) => {
+      if (msg && msg.type === 'shutdown') shutdown(0);
+      else if (msg && msg.type === 'panic') engine.panic(msg.source);
+    });
+    process.on('disconnect', () => shutdown(0));
+  }
 
   if (process.stdin.isTTY) {
     console.log('Commands: panic | panic k | panic s | status | stats | q');
