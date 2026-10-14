@@ -305,5 +305,5 @@ npm run control      # http://127.0.0.1:8787 — démarre aussi le service
 - `Enregistrer` écrit le `.env` (commentaires conservés) ; `Appliquer maintenant` enregistre puis relance le service ; « Appliquer automatiquement » le fait 0,9 s après la dernière modification valide.
 - La validation utilise le même `loadConfig` que le service : une valeur invalide bloque l'application.
 - Arrêt/relance gracieux (trames noires envoyées), bouton Panic, journal du service en direct, liste des ports MIDI détectés.
-- Options : `--port 8787`, `--host 0.0.0.0` (sans authentification : réseau de confiance uniquement), `--no-autostart`. Développement UI : `npm run control -- --no-autostart` + `npm run ui:dev` (http://localhost:5173).
+- Écoute par défaut sur toutes les interfaces (`0.0.0.0:8787`) : accessible via `http://<ip-du-raspberry>:8787` (les URLs sont affichées au démarrage). Aucune authentification : réseau de confiance uniquement. Service au boot : `deploy/pianoled-control.service`. Options : `--port 8787`, `--host 127.0.0.1` (local seulement), `--no-autostart`. Développement UI : `npm run control -- --no-autostart` + `npm run ui:dev` (http://localhost:5173).
 - Le service lancé par le panneau ignore les variables d'environnement système portant les mêmes noms : le `.env` fait foi.

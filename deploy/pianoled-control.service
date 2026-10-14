@@ -1,0 +1,30 @@
+# systemd unit for the Raspberry Pi: web control panel + supervised LED service.
+# Use this INSTEAD of pianoled.service (the panel starts/stops/restarts run.js itself).
+# Adjust User and WorkingDirectory, run `npm run ui:install && npm run ui:build` once, then:
+#   sudo cp deploy/pianoled-control.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl disable --now pianoled; sudo systemctl enable --now pianoled-control
+# Panel: http://<ip-du-raspberry>:8787  (no authentication: trusted LAN only)
+[Unit]
+Description=PianoLED control panel (web UI + supervised engine)
+After=network-online.target sound.target rtpmidid.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=pi
+Group=audio
+WorkingDirectory=/home/pi/ownpianoled
+Environment=NODE_ENV=production
+Environment=CONTROL_HOST=0.0.0.0
+Environment=CONTROL_PORT=8787
+ExecStart=/usr/bin/node src/cli/control.js
+KillSignal=SIGTERM
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=3
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
