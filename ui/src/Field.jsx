@@ -52,6 +52,19 @@ function Control({ field, value, onChange, ports }) {
     );
   }
 
+  if (type === 'int' && field.hot) {
+    const n = Number(value === '' ? field.def : value) || 0;
+    const set = (v) => onChange(String(Math.min(field.max, Math.max(field.min, v))));
+    return (
+      <div className="stepper">
+        <button type="button" className="btn sm" onClick={() => set(n - 1)} disabled={n <= field.min} aria-label={`${field.label} : diminuer`}>▼</button>
+        <input className="in num" type="number" min={field.min} max={field.max} step="1" value={value} onChange={(e) => onChange(e.target.value)} />
+        <button type="button" className="btn sm" onClick={() => set(n + 1)} disabled={n >= field.max} aria-label={`${field.label} : augmenter`}>▲</button>
+        {field.unit && <span className="unit">{field.unit}</span>}
+      </div>
+    );
+  }
+
   if ((type === 'number' || type === 'int') && field.slider) {
     return (
       <div className="sliderrow">
