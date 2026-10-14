@@ -17,6 +17,7 @@ const NAMED_COLORS = {
 
 const DEFAULT_KEYBOARD_COLOR = [0xff, 0x4d, 0x9d]; // #FF4D9D
 const DEFAULT_OVERLAP_COLOR = [0x00, 0xff, 0x00]; // #00FF00
+const DEFAULT_SYNTH_BLACK_COLOR = [0x8a, 0x2b, 0xff]; // #8A2BFF
 
 class ConfigError extends Error {}
 
@@ -112,6 +113,7 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
   if (env.COLOR_SYNTHESIA) colors.synthesia = parseRgb(env.COLOR_SYNTHESIA, 'COLOR_SYNTHESIA');
   const keyboardColor = env.COLOR_KEYBOARD ? parseRgb(env.COLOR_KEYBOARD, 'COLOR_KEYBOARD') : DEFAULT_KEYBOARD_COLOR.slice();
   const overlapColor = env.COLOR_OVERLAP ? parseRgb(env.COLOR_OVERLAP, 'COLOR_OVERLAP') : DEFAULT_OVERLAP_COLOR.slice();
+  const synthBlackColor = env.COLOR_SYNTHESIA_BLACK ? parseRgb(env.COLOR_SYNTHESIA_BLACK, 'COLOR_SYNTHESIA_BLACK') : DEFAULT_SYNTH_BLACK_COLOR.slice();
   const colorNames = Object.keys(colors);
 
   const synthDefault = (env.SYNTH_DEFAULT_COLOR || 'synthesia').toLowerCase();
@@ -138,6 +140,8 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
       named: colors,
       keyboard: keyboardColor,
       overlap: overlapColor,
+      synthesiaBlack: synthBlackColor,
+      overlapBoost: readNumber(env, 'OVERLAP_BOOST', 2, 0, 10),
       brightness: readNumber(env, 'BRIGHTNESS', 0.25, 0, 1),
     },
     synthesia: {

@@ -4,6 +4,8 @@ const { LED_COUNT, FRAME_BYTES } = require('../constants');
 
 const SYMBOLS = { white: 'W', green: 'G', blue: 'B', red: 'R', cyan: 'C', yellow: 'Y', synthesia: 'S' };
 
+const BLACK_PITCH_CLASSES = new Set([1, 3, 6, 8, 10]);
+
 function scale(rgb, brightness) {
   return rgb.map((c) => Math.max(0, Math.min(255, Math.round(c * brightness))));
 }
@@ -14,13 +16,14 @@ function scale(rgb, brightness) {
  */
 function createPalette({ colors, synthesia }) {
   const keyboard = { name: 'keyboard', symbol: 'W', rgb: scale(colors.keyboard, colors.brightness) };
-  const overlap = { name: 'overlap', symbol: 'O', rgb: scale(colors.overlap, colors.brightness) };
+  const overlap = { name: 'overlap', symbol: 'O', rgb: scale(colors.overlap, colors.brightness * colors.overlapBoost) };
+  const synthBlack = { name: 'synthesia-black', symbol: 'K', rgb: scale(colors.synthesiaBlack, colors.brightness) };
   const synthByChannel = [];
   for (let ch = 0; ch < 16; ch++) {
     const name = synthesia.channelColors[ch] || synthesia.defaultColor;
     synthByChannel.push({ name, symbol: SYMBOLS[name] || '*', rgb: scale(colors.named[name], colors.brightness) });
   }
-  return { keyboard, overlap, synthForChannel: (ch) => synthByChannel[ch] };
+  return { keyboard, overlap, synthBlack, synthForChannel: (ch) => synthByChannel[ch] };
 }
 
 /**
@@ -35,7 +38,7 @@ function renderFrame(store, mapper, palette) {
   for (const [note, channels] of store.litNotes('synthesia')) {
     const led = mapper.ledForNote(note);
     if (led === null) continue;
-    const color = palette.synthForChannel(channels[0]);
+    const color = BLACK_PITCH_CLASSES.has(note % 12) ? palette.synthBlack : palette.synthForChannel(channels[0]);
     if (!cells[led] || cells[led].channel > channels[0]) cells[led] = { ...color, channel: channels[0] };
   }
   for (const note of store.litNotes('keyboard').keys()) {
@@ -54,7 +57,7 @@ function renderFrame(store, mapper, palette) {
   return { pixels, cells };
 }
 
-/** One character per LED: '.' off, 'W' keyboard, 'O' overlap, 'S'/'G'/'B'... Synthesia colors. */
+/** One character per LED: '.' off, 'W' keyboard, 'O' overlap, 'S'/'G'/'B'... Synthesia colors, 'K' Synthesia black keys. */
 function cellsToString(cells) {
   return cells.map((c) => (c ? c.symbol : '.')).join('');
 }

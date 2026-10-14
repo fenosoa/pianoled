@@ -25,11 +25,23 @@ test('synthesia color per channel; default color for unconfigured channels; lowe
   const { engine } = makeEngine({ SYNTH_CHANNEL_COLORS: '2:blue', SYNTH_DEFAULT_COLOR: 'green' });
   engine.handle(noteOn('synthesia', 50, 90, 0));
   engine.handle(noteOn('synthesia', 52, 90, 1));
-  engine.handle(noteOn('synthesia', 54, 90, 1));
-  engine.handle(noteOn('synthesia', 54, 90, 0));
+  engine.handle(noteOn('synthesia', 53, 90, 1));
+  engine.handle(noteOn('synthesia', 53, 90, 0));
   assert.equal(engine.cell(engine.mapper.ledForNote(50)).symbol, 'G');
   assert.equal(engine.cell(engine.mapper.ledForNote(52)).symbol, 'B');
-  assert.equal(engine.cell(engine.mapper.ledForNote(54)).symbol, 'G');
+  assert.equal(engine.cell(engine.mapper.ledForNote(53)).symbol, 'G');
+});
+
+test('synthesia black keys use their own color; overlap is boosted', () => {
+  const { engine } = makeEngine({ BRIGHTNESS: '0.1', OVERLAP_BOOST: '2' });
+  const white = engine.mapper.ledForNote(60);
+  const black = engine.mapper.ledForNote(61);
+  engine.handle(noteOn('synthesia', 61, 90, 0));
+  assert.equal(engine.cell(black).symbol, 'K');
+  assert.deepEqual(rgbAt(engine, black), [14, 4, 26]);
+  engine.handle(noteOn('synthesia', 60, 90, 0));
+  engine.handle(noteOn('keyboard', 60));
+  assert.deepEqual(rgbAt(engine, white), [0, 51, 0]);
 });
 
 test('brightness scales colors', () => {
