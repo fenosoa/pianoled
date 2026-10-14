@@ -1,6 +1,6 @@
 {
   "name": "ownpianoled",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MIDI -> LED engine (DDP to WLED/GLEDOPTO) with RTP-MIDI routing for Synthesia",
   "private": true,
   "type": "commonjs",

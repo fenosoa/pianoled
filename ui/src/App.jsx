@@ -31,6 +31,8 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [logsOpen, setLogsOpen] = useState(true);
   const { status, logs } = useServerEvents();
+  const [server, setServer] = useState(null);
+  useEffect(() => { api('/api/version').then(setServer).catch(() => setServer({ version: '?', old: true })); }, []);
 
   const notify = useCallback((msg, kind = 'ok') => {
     setToast({ msg, kind, id: Date.now() });
@@ -164,6 +166,11 @@ export default function App() {
             <Icon name="table" />
             <span>Table des notes</span>
           </button>
+          <div className="ver">
+            <b>v{__UI_BUILD__.version}</b> · {__UI_BUILD__.commit}
+            <span>UI compilée {new Date(__UI_BUILD__.builtAt).toLocaleString('fr-FR')}</span>
+            <span>{server?.old ? 'Serveur : ancienne version (sans /api/version) — relancez npm run control' : `Serveur v${server?.version ?? '…'} · démarré ${server ? new Date(server.startedAt).toLocaleString('fr-FR') : ''}`}</span>
+          </div>
         </nav>
 
         <main className="main">

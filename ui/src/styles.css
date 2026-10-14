@@ -150,3 +150,7 @@ code { font-family: ui-monospace, Consolas, monospace; }
 .nm-msg { flex: 1; min-width: 200px; font-size: 13px; color: var(--muted); }
 .nm-msg .bad { color: var(--bad); display: inline-flex; gap: 6px; } .nm-msg .warn { color: var(--warn); }
 @media (max-width: 760px) { .strip { grid-template-columns: repeat(30, 1fr); } }
+
+.ver { margin-top: auto; padding: 14px 6px 4px; color: var(--muted); font-size: 11px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); }
+.ver b { color: var(--text); font-size: 12px; }
+@media (max-width: 760px) { .ver { display: none; } }

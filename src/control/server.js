@@ -6,6 +6,7 @@ const path = require('node:path');
 const { EnvStore } = require('./env-store');
 const { Runner } = require('./runner');
 const { GROUPS, FIELDS, NOTE_MAP_FILE } = require('./schema');
+const pkg = require('../../package.json');
 const { NoteMapStore } = require('./note-map-store');
 
 const MIME = {
@@ -31,6 +32,7 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
   const noteMap = new NoteMapStore({ baseDir, file: NOTE_MAP_FILE });
   runner = runner || new Runner({ baseDir });
   const clients = new Set();
+  const startedAt = new Date().toISOString();
 
   const broadcast = (event, data) => {
     const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -96,6 +98,8 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
         }
         return send(res, 200, { ...check, saved: true, restarted });
       }
+      case 'GET /api/version':
+        return send(res, 200, { version: pkg.version, startedAt });
       case 'GET /api/status':
         return send(res, 200, runner.status());
       case 'GET /api/logs':
@@ -156,7 +160,9 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
       res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('UI non compilée. Lancez : npm run ui:build (ou npm run ui:dev pour le mode développement).');
     }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    // index.html must never be cached, otherwise a rebuilt UI keeps showing the old bundle.
+    const cache = path.basename(file) === 'index.html' ? 'no-store' : 'public, max-age=31536000, immutable';
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': cache });
     fs.createReadStream(file).pipe(res);
   }
 
