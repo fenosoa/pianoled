@@ -154,3 +154,9 @@ code { font-family: ui-monospace, Consolas, monospace; }
 .ver { margin-top: auto; padding: 14px 6px 4px; color: var(--muted); font-size: 11px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); }
 .ver b { color: var(--text); font-size: 12px; }
 @media (max-width: 760px) { .ver { display: none; } }
+.nm-note { font-variant-numeric: tabular-nums; font-weight: 600; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper .in.num { width: 80px; text-align: center; }
+.ok-flash { color: var(--ok); opacity: 0; transition: opacity .4s; font-weight: 700; }
+.ok-flash.on { opacity: 1; transition: none; }
+.sync { font-size: 12px; color: var(--muted); } .sync.ok { color: var(--ok); }
