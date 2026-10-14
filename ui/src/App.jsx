@@ -3,6 +3,7 @@ import { api, useServerEvents } from './api.js';
 import { Field } from './Field.jsx';
 import { Icon } from './Icon.jsx';
 import { LogPanel } from './LogPanel.jsx';
+import { NoteMapEditor } from './NoteMapEditor.jsx';
 
 const STATE_LABEL = {
   running: 'En marche',
@@ -13,6 +14,7 @@ const STATE_LABEL = {
 };
 
 function visible(field, values) {
+  if (field.hidden) return false;
   return !field.showIf || Object.entries(field.showIf).every(([k, v]) => values[k] === v);
 }
 
@@ -112,7 +114,7 @@ export default function App() {
   const q = query.trim().toLowerCase();
   const matches = (f) => !q || `${f.label} ${f.key} ${f.help}`.toLowerCase().includes(q);
   const fieldsOf = (g) => schema.fields.filter((f) => f.group === g && visible(f, draft));
-  const current = schema.groups.find((g) => g.id === group);
+  const current = schema.groups.find((g) => g.id === group) || schema.groups[0];
   const shown = q
     ? schema.fields.filter((f) => visible(f, draft) && matches(f))
     : fieldsOf(group);
@@ -158,9 +160,16 @@ export default function App() {
               {dirtyIn(g.id) > 0 && <b className="badge">{dirtyIn(g.id)}</b>}
             </button>
           ))}
+          <button className={`nav ${!q && group === '__map' ? 'on' : ''}`} onClick={() => { setQuery(''); setGroup('__map'); }}>
+            <Icon name="table" />
+            <span>Table des notes</span>
+          </button>
         </nav>
 
         <main className="main">
+        {group === '__map' && !q ? (
+          <NoteMapEditor notify={notify} mappingMode={draft.MAPPING_MODE} running={state === 'running'} onUseTable={() => set('MAPPING_MODE', 'table')} />
+        ) : (<>
           <div className="head">
             <h2>{q ? `Résultats pour « ${query} »` : current.label}</h2>
             <p>{q ? `${shown.length} paramètre(s)` : current.hint}</p>
@@ -181,6 +190,7 @@ export default function App() {
             ))}
             {!shown.length && <div className="empty">Aucun paramètre.</div>}
           </div>
+        </>)}
         </main>
       </div>
 

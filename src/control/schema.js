@@ -36,7 +36,8 @@ const FIELDS = [
   { key: 'MIDI_BASE_NOTE', group: 'mapping', type: 'int', label: 'Note MIDI de base', help: 'Note associée à la LED d’origine (21 = A0).', def: '21', min: 0, max: 127, showIf: { MAPPING_MODE: 'linear' } },
   { key: 'LED_OFFSET', group: 'mapping', type: 'int', label: 'Décalage LED', help: 'led = offset + (note − base).', def: '0', min: -127, max: 119, showIf: { MAPPING_MODE: 'linear' } },
   { key: 'LED_REVERSE', group: 'mapping', type: 'bool', label: 'Inverser le sens', help: 'Miroir de la bande.', def: '0', showIf: { MAPPING_MODE: 'linear' } },
-  { key: 'NOTE_MAP_FILE', group: 'mapping', type: 'text', label: 'Fichier de table', help: 'Ex. config/note-map.json (obligatoire en mode table).', def: '', placeholder: 'config/note-map.json', showIf: { MAPPING_MODE: 'table' } },
+  // Fixed path (not editable in the UI): the table is edited in the dedicated note-map editor.
+  { key: 'NOTE_MAP_FILE', group: 'mapping', type: 'text', hidden: true, label: 'Fichier de table', def: 'config/note-map.json' },
 
   { key: 'KEYBOARD_IN_PORT', group: 'midi', type: 'port-in', label: 'Entrée clavier', help: 'Sous-chaîne du nom du port (insensible à la casse).', def: '' },
   { key: 'SYNTHESIA_IN_PORT', group: 'midi', type: 'port-in', label: 'Entrée Synthesia', help: 'Port d’où Synthesia envoie ses notes.', def: '' },
@@ -54,4 +55,6 @@ const FIELDS = [
 
 const KEYS = FIELDS.map((f) => f.key);
 
-module.exports = { GROUPS, FIELDS, KEYS };
+const NOTE_MAP_FILE = 'config/note-map.json';
+
+module.exports = { GROUPS, FIELDS, KEYS, NOTE_MAP_FILE };

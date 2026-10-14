@@ -5,7 +5,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { EnvStore } = require('./env-store');
 const { Runner } = require('./runner');
-const { GROUPS, FIELDS } = require('./schema');
+const { GROUPS, FIELDS, NOTE_MAP_FILE } = require('./schema');
+const { NoteMapStore } = require('./note-map-store');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -27,6 +28,7 @@ function listMidiPorts() {
 
 function createControlServer({ baseDir = process.cwd(), runner, store, staticDir = path.join(baseDir, 'ui', 'dist') } = {}) {
   store = store || new EnvStore({ baseDir });
+  const noteMap = new NoteMapStore({ baseDir, file: NOTE_MAP_FILE });
   runner = runner || new Runner({ baseDir });
   const clients = new Set();
 
@@ -65,6 +67,7 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
   const prepare = (values) => {
     const merged = { ...store.effective(), ...values };
     for (const f of FIELDS) merged[f.key] = String(merged[f.key] ?? '').trim();
+    merged.NOTE_MAP_FILE = NOTE_MAP_FILE; // fixed path
     return { merged, check: store.validate(merged) };
   };
 
@@ -79,6 +82,20 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
         return send(res, 200, { groups: GROUPS, fields: FIELDS });
       case 'GET /api/env':
         return send(res, 200, { values: store.effective(), file: path.basename(store.file), exists: fs.existsSync(store.file) });
+      case 'GET /api/note-map':
+        return send(res, 200, noteMap.read());
+      case 'PUT /api/note-map': {
+        const { map, apply = false } = await readJson(req);
+        const check = noteMap.validate(map);
+        if (!check.ok) return send(res, 422, check);
+        noteMap.write(map);
+        let restarted = false;
+        if (apply && runner.child) {
+          await runner.restart();
+          restarted = true;
+        }
+        return send(res, 200, { ...check, saved: true, restarted });
+      }
       case 'GET /api/status':
         return send(res, 200, runner.status());
       case 'GET /api/logs':

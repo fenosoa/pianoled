@@ -4,3 +4,4 @@ captures/*.json
 
 ui/node_modules/
 ui/dist/
+config/*.bak

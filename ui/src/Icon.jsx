@@ -15,6 +15,10 @@ const PATHS = {
   alert: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
   undo: 'M3 7v6h6M3 13a9 9 0 1 0 3-7',
   terminal: 'M4 17l6-6-6-6M12 19h8',
+  table: 'M3 5h18v14H3zM3 10h18M9 5v14',
+  save: 'M5 3h11l4 4v14H5zM8 3v5h7M8 21v-7h8v7',
+  plus: 'M12 5v14M5 12h14',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
   chevron: 'M6 9l6 6 6-6',
 };
 
