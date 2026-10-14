@@ -32,3 +32,7 @@ Dans **Settings → Music Devices** (intitulés à vérifier selon la version) :
 2. Windows : `npm install` puis `npm run echo:windows -- --list`, puis `npm run echo:windows -- --in "<session>" --out "<session>"`.
 3. Pi : `npm run rtt -- --count 500 --interval 20`.
 Seules les notes du canal 16 sont renvoyées par l'outil d'écho.
+
+## Transposition / octave
+
+Dans Synthesia, ne **pas** appliquer de transposition ni de décalage d'octave clavier : tous les décalages se règlent sur le Raspberry Pi (groupe « Transposition & octave » du panneau de contrôle) et sur le PSR. Limitation : un seul décalage global côté PSR ; le mode Split/Dual avec octaves différentes par partie n'est pas géré.

@@ -3,6 +3,9 @@
 const { parseMessage, describe } = require('../midi/messages');
 const { monotonicMs } = require('../metrics');
 const { silentLogger } = require('../logger');
+const { PitchMapper, audioShiftOf, keyboardShiftOf } = require('../midi/pitch');
+
+const NO_PITCH = Object.freeze({ audioTransposeSemitones: 0, audioOctaveShift: 0, keyboardPhysicalTransposeSemitones: 0, keyboardPhysicalOctaveShift: 0 });
 
 /**
  * Two strictly separate logical paths:
@@ -14,7 +17,7 @@ const { silentLogger } = require('../logger');
  * before it can reach the LEDs or the keyboard output.
  */
 class MidiRouter {
-  constructor({ engine, keyboardIn, synthesiaIn, synthesiaOut, keyboardOut = null, forwardSynthesia = false, forwardKeyboard = true, echoGuardMs = 0, synthStaleMs = 0, diag = false, logger = silentLogger, print = console.log }) {
+  constructor({ engine, keyboardIn, synthesiaIn, synthesiaOut, keyboardOut = null, forwardSynthesia = false, forwardKeyboard = true, echoGuardMs = 0, synthStaleMs = 0, diag = false, pitch = NO_PITCH, logger = silentLogger, print = console.log }) {
     this.engine = engine;
     this.keyboardIn = keyboardIn;
     this.synthesiaIn = synthesiaIn;
@@ -29,6 +32,8 @@ class MidiRouter {
     this.synthStaleMs = synthStaleMs;
     this.diag = diag;
     this.logger = logger;
+    this.pitch = new PitchMapper({ logger });
+    this.setPitch(pitch);
     this.print = print;
     this.t0 = monotonicMs();
     this.recentForwards = new Map();
@@ -37,10 +42,19 @@ class MidiRouter {
     this.stats = { keyboardIn: 0, forwarded: 0, forwardDropped: 0, synthesiaIn: 0, synthToKeyboard: 0, synthToKeyboardDropped: 0, echoDropped: 0, malformed: 0, staleClears: 0 };
   }
 
+  /** Hot update; notes already open keep the number they were emitted with. */
+  setPitch(pitch) {
+    this.audioShift = audioShiftOf(pitch);
+    this.keyboardShift = keyboardShiftOf(pitch);
+  }
+
   start() {
     if (this.keyboardIn) {
       this.keyboardIn.on('message', (bytes, ts) => this.onKeyboard(bytes, ts));
-      this.keyboardIn.on('disconnected', () => this.engine.panic('keyboard'));
+      this.keyboardIn.on('disconnected', () => {
+        this.pitch.clear('kbd');
+        this.engine.panic('keyboard');
+      });
     }
     if (this.synthesiaIn) {
       this.synthesiaIn.on('message', (bytes, ts) => this.onSynthesia(bytes, ts));
@@ -70,15 +84,22 @@ class MidiRouter {
     for (const ch of this.pedalToKeyboard) this.keyboardOut.send([0xb0 | ch, 64, 0]);
     this.heldToKeyboard.clear();
     this.pedalToKeyboard.clear();
+    this.pitch.clear('syn');
   }
 
   forwardToKeyboard(bytes, event) {
-    const sent = this.keyboardOut.send(Array.from(bytes));
-    if (sent) this.stats.synthToKeyboard++;
-    else this.stats.synthToKeyboardDropped++;
-    if (event.type === 'noteon') this.heldToKeyboard.add(`${event.channel}:${event.note}`);
-    else if (event.type === 'noteoff') this.heldToKeyboard.delete(`${event.channel}:${event.note}`);
-    else if (event.type === 'cc' && event.controller === 64) {
+    let sent = false;
+    for (const out of this.pitch.translate('syn', bytes, this.audioShift)) {
+      const ok = this.keyboardOut.send(Array.from(out));
+      if (ok) this.stats.synthToKeyboard++;
+      else this.stats.synthToKeyboardDropped++;
+      sent = sent || ok;
+      const kind = out[0] & 0xf0;
+      const key = `${out[0] & 0x0f}:${out[1]}`;
+      if (kind === 0x90 && out[2] > 0) this.heldToKeyboard.add(key);
+      else if (kind === 0x80 || kind === 0x90) this.heldToKeyboard.delete(key);
+    }
+    if (event.type === 'cc' && event.controller === 64) {
       if (event.value >= 64) this.pedalToKeyboard.add(event.channel);
       else this.pedalToKeyboard.delete(event.channel);
     }
@@ -93,6 +114,11 @@ class MidiRouter {
 
   onKeyboard(bytes, ts = monotonicMs()) {
     this.stats.keyboardIn++;
+    // Back to the reference space (the physical key) once, for Synthesia, the LEDs and the echo guard alike.
+    for (const msg of this.pitch.translate('kbd', bytes, -this.keyboardShift)) this.handleKeyboard(msg, ts);
+  }
+
+  handleKeyboard(bytes, ts) {
     const isChannelMessage = bytes[0] >= 0x80 && bytes[0] < 0xf0;
     // Forward first: the player's latency to Synthesia matters more than the LED update.
     let forwarded = false;

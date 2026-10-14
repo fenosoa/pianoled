@@ -102,6 +102,16 @@ function loadNoteMapFile(file, baseDir) {
   return table;
 }
 
+// Pitch settings are hot-reloadable, so they have their own loader (also used by the control server).
+function loadPitch(env = process.env) {
+  return {
+    audioTransposeSemitones: readInt(env, 'AUDIO_TRANSPOSE_SEMITONES', 0, -12, 12),
+    audioOctaveShift: readInt(env, 'AUDIO_OCTAVE_SHIFT', 0, -3, 3),
+    keyboardPhysicalTransposeSemitones: readInt(env, 'KEYBOARD_PHYSICAL_TRANSPOSE_SEMITONES', 0, -12, 12),
+    keyboardPhysicalOctaveShift: readInt(env, 'KEYBOARD_PHYSICAL_OCTAVE_SHIFT', 0, -3, 3),
+  };
+}
+
 function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
   if (env.LED_COUNT !== undefined && env.LED_COUNT !== '' && Number(env.LED_COUNT) !== LED_COUNT) {
     throw new ConfigError(`LED_COUNT is fixed to ${LED_COUNT} during this phase (got ${env.LED_COUNT})`);
@@ -155,6 +165,7 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
       reverse: readBool(env, 'LED_REVERSE', false),
       table: mappingMode === 'table' ? loadNoteMapFile(env.NOTE_MAP_FILE, baseDir) : null,
     },
+    pitch: loadPitch(env),
     sustainMode: readEnum(env, 'SUSTAIN_MODE', 'keys', ['keys', 'sound']),
     midi: {
       keyboardIn: env.KEYBOARD_IN_PORT || '',
@@ -176,4 +187,4 @@ function loadConfigFromProject({ envFile = process.env.ENV_FILE || '.env', env =
   return loadConfig(env, { baseDir });
 }
 
-module.exports = { loadConfig, loadConfigFromProject, parseRgb, parseChannelColors, ConfigError, NAMED_COLORS };
+module.exports = { loadConfig, loadPitch, loadConfigFromProject, parseRgb, parseChannelColors, ConfigError, NAMED_COLORS };

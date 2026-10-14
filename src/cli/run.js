@@ -40,7 +40,7 @@ async function main() {
 
   const router = new MidiRouter({
     engine, keyboardIn, synthesiaIn, synthesiaOut, keyboardOut, forwardSynthesia: m.forwardSynthesia,
-    forwardKeyboard: m.forwardKeyboard, echoGuardMs: m.echoGuardMs, synthStaleMs: m.synthStaleMs, diag, logger,
+    forwardKeyboard: m.forwardKeyboard, echoGuardMs: m.echoGuardMs, synthStaleMs: m.synthStaleMs, diag, pitch: config.pitch, logger,
   });
 
   engine.start();
@@ -79,6 +79,10 @@ async function main() {
     process.on('message', (msg) => {
       if (msg && msg.type === 'shutdown') shutdown(0);
       else if (msg && msg.type === 'panic') engine.panic(msg.source);
+      else if (msg && msg.type === 'pitch') {
+        router.setPitch(msg.pitch);
+        logger.info(`[pitch] audio shift ${router.audioShift}, keyboard shift ${router.keyboardShift} (semitones)`);
+      }
     });
     process.on('disconnect', () => shutdown(0));
   }

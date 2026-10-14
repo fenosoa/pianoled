@@ -6,6 +6,7 @@ const path = require('node:path');
 const { EnvStore } = require('./env-store');
 const { Runner } = require('./runner');
 const { GROUPS, FIELDS, NOTE_MAP_FILE } = require('./schema');
+const { loadPitch } = require('../config');
 const pkg = require('../../package.json');
 const { NoteMapStore } = require('./note-map-store');
 
@@ -130,6 +131,15 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
       case 'POST /api/restart':
         await runner.restart();
         return send(res, 200, runner.status());
+      case 'POST /api/pitch': {
+        // Hot path: persist to .env and push to the running service, no restart.
+        const { values = {} } = await readJson(req);
+        const { merged, check } = prepare(values);
+        if (!check.ok) return send(res, 422, check);
+        store.write(merged);
+        const env = Object.fromEntries(FIELDS.filter((f) => f.hot).map((f) => [f.key, merged[f.key]]));
+        return send(res, 200, { ...check, saved: true, applied: runner.setPitch(loadPitch(env)) });
+      }
       case 'POST /api/panic': {
         const { source } = await readJson(req);
         return send(res, 200, { sent: runner.panic(source) });

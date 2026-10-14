@@ -108,6 +108,13 @@ class Runner extends EventEmitter {
     return this.start();
   }
 
+  /** Pushes validated pitch settings to the running service (no restart). */
+  setPitch(pitch) {
+    if (!this.child) return false;
+    this.child.send({ type: 'pitch', pitch });
+    return true;
+  }
+
   panic(source) {
     if (!this.child) return false;
     this.child.send({ type: 'panic', source });

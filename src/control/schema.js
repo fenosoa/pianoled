@@ -8,6 +8,7 @@ const GROUPS = [
   { id: 'colors', label: 'Couleurs', icon: 'palette', hint: 'Luminosité globale et couleurs des sources.' },
   { id: 'mapping', label: 'Mapping notes → LEDs', icon: 'map', hint: 'Correspondance entre notes MIDI et index de LED.' },
   { id: 'midi', label: 'Ports MIDI', icon: 'plug', hint: 'Clavier, Synthesia et routage.' },
+  { id: 'pitch', label: 'Transposition & octave', icon: 'music', hint: 'Appliqué à chaud. Synthesia ne doit appliquer aucun décalage de son côté : tout est géré ici et par le PSR. Les LED et la validation Synthesia restent dans la tonalité des morceaux.' },
   { id: 'misc', label: 'Divers', icon: 'cog', hint: 'Pédale de sustain, logs.' },
 ];
 
@@ -50,6 +51,11 @@ const FIELDS = [
   { key: 'PORT_POLL_MS', group: 'midi', type: 'int', label: 'Scrutation des ports', unit: 'ms', help: 'Reconnexion automatique.', def: '2000', min: 200, max: 60000 },
   { key: 'ECHO_GUARD_MS', group: 'midi', type: 'int', label: 'Garde anti-écho', unit: 'ms', help: '>0 : ignore une note Synthesia identique à une note clavier récente.', def: '0', min: 0, max: 1000 },
   { key: 'SYNTH_STALE_MS', group: 'midi', type: 'int', label: 'Péremption Synthesia', unit: 'ms', help: '>0 : éteint les LEDs Synthesia sans message depuis N ms.', def: '0', min: 0, max: 3600000 },
+
+  { key: 'AUDIO_TRANSPOSE_SEMITONES', group: 'pitch', hot: true, type: 'int', label: 'Son : transposition', unit: 'demi-tons', help: 'Synthesia → PSR. Ex. −3 : un morceau en Sol sonne en Mi. Les LED ne changent pas.', def: '0', min: -12, max: 12 },
+  { key: 'AUDIO_OCTAVE_SHIFT', group: 'pitch', hot: true, type: 'int', label: 'Son : décalage d’octave', unit: 'octaves', help: 'Synthesia → PSR, s’ajoute à la transposition (12 demi-tons par octave).', def: '0', min: -3, max: 3 },
+  { key: 'KEYBOARD_PHYSICAL_TRANSPOSE_SEMITONES', group: 'pitch', hot: true, type: 'int', label: 'Compensation clavier : transposition', unit: 'demi-tons', help: 'Transposition réellement appliquée par le PSR sur son MIDI OUT. Les notes sont ramenées à la touche physique avant Synthesia et les LED.', def: '0', min: -12, max: 12 },
+  { key: 'KEYBOARD_PHYSICAL_OCTAVE_SHIFT', group: 'pitch', hot: true, type: 'int', label: 'Compensation clavier : octave', unit: 'octaves', help: 'Décalage d’octave réellement appliqué par le PSR sur son MIDI OUT. Un seul décalage global (Split/Dual avec octaves différentes non géré).', def: '0', min: -3, max: 3 },
 
   { key: 'SUSTAIN_MODE', group: 'misc', type: 'enum', label: 'Pédale de sustain', help: 'keys : suit les touches · sound : reste allumé tant que la pédale tient.', def: 'keys', options: ['keys', 'sound'] },
   { key: 'LOG_LEVEL', group: 'misc', type: 'enum', label: 'Niveau de logs', help: '', def: 'info', options: ['error', 'warn', 'info', 'debug'] },

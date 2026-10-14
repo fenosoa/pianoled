@@ -88,14 +88,16 @@ export default function App() {
       run(
         'apply',
         async () => {
-          const r = await api('/api/apply', { values: draft });
+          // Pitch-only changes are applied live, without restarting the service.
+          const hotOnly = changed.every((k) => schema.fields.find((f) => f.key === k)?.hot);
+          const r = hotOnly ? await api('/api/pitch', { values: draft }) : await api('/api/apply', { values: draft });
           setSaved(draft);
           return r;
         },
-        (r) => `Appliqué : service relancé en ${r.ms} ms`
+        (r) => (r.restarted ? `Appliqué : service relancé en ${r.ms} ms` : 'Appliqué à chaud')
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft]
+    [draft, changed, schema]
   );
   const revert = () => setDraft(saved);
 

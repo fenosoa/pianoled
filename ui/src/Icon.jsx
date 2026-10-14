@@ -19,6 +19,7 @@ const PATHS = {
   save: 'M5 3h11l4 4v14H5zM8 3v5h7M8 21v-7h8v7',
   plus: 'M12 5v14M5 12h14',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  music: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
   chevron: 'M6 9l6 6 6-6',
 };
 
