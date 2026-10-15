@@ -54,6 +54,15 @@ test('Synthesia events drive LEDs but are never forwarded (no feedback loop)', (
   assert.equal(sym(62), 'B');
 });
 
+test('Synthesia practice-hand hints (poly aftertouch) light and clear the LEDs', () => {
+  const { synthesiaIn, synthesiaOut, sym } = setup();
+  synthesiaIn.emit('message', [0xa2, 62, 2], 1);
+  assert.notEqual(sym(62), null);
+  synthesiaIn.emit('message', [0xa2, 62, 0], 2);
+  assert.equal(sym(62), null);
+  assert.equal(synthesiaOut.sent.length, 0);
+});
+
 test('both flows simultaneously keep priority', () => {
   const { keyboardIn, synthesiaIn, sym } = setup();
   synthesiaIn.emit('message', [0x90, 60, 90], 1);

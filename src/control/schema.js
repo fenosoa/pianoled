@@ -34,6 +34,7 @@ const FIELDS = [
   { key: 'COLOR_BLUE', group: 'colors', type: 'color', label: 'Couleur « blue »', help: 'Palette nommée utilisable par canal.', def: '0,0,255' },
   { key: 'SYNTH_DEFAULT_COLOR', group: 'colors', type: 'enum', label: 'Couleur Synthesia par défaut', help: 'Utilisée pour les canaux sans règle.', def: 'synthesia', options: ['synthesia', 'green', 'blue', 'white', 'red', 'cyan', 'yellow'] },
   { key: 'SYNTH_CHANNEL_COLORS', group: 'colors', type: 'text', label: 'Couleur par canal Synthesia', help: 'Format canal:couleur (canaux 1..16), ex. 1:green,2:blue.', def: '', placeholder: '1:green,2:blue' },
+  { key: 'SYNTH_CHANNEL_BOOST', group: 'colors', type: 'text', label: 'Luminosité par canal Synthesia', help: 'Format canal:multiplicateur (0..10), ex. 2:3 = canal 2 trois fois plus lumineux.', def: '2:3', placeholder: '2:3' },
 
   { key: 'MAPPING_MODE', group: 'mapping', type: 'enum', label: 'Mode', help: 'linear : formule · table : fichier JSON explicite.', def: 'linear', options: ['linear', 'table'] },
   { key: 'MIDI_BASE_NOTE', group: 'mapping', type: 'int', label: 'Note MIDI de base', help: 'Note associée à la LED d’origine (21 = A0).', def: '21', min: 0, max: 127, showIf: { MAPPING_MODE: 'linear' } },

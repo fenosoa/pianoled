@@ -85,6 +85,22 @@ function parseChannelColors(raw, colorNames) {
   return out;
 }
 
+// "2:3" (user-facing channel:brightness multiplier) -> { 1: 3 } (code channels 0..15).
+function parseChannelBoost(raw) {
+  const out = {};
+  if (!raw) return out;
+  for (const part of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const m = /^(\d{1,2})\s*:\s*(\d+(?:\.\d+)?)$/.exec(part);
+    if (!m) throw new ConfigError(`SYNTH_CHANNEL_BOOST: invalid entry "${part}" (expected channel:factor)`);
+    const ch = Number(m[1]);
+    const factor = Number(m[2]);
+    if (ch < 1 || ch > 16) throw new ConfigError(`SYNTH_CHANNEL_BOOST: channel ${ch} outside 1..16`);
+    if (factor > 10) throw new ConfigError(`SYNTH_CHANNEL_BOOST: factor ${factor} outside 0..10`);
+    out[ch - 1] = factor;
+  }
+  return out;
+}
+
 function loadNoteMapFile(file, baseDir) {
   const full = path.resolve(baseDir, file);
   let json;
@@ -157,6 +173,7 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
     synthesia: {
       defaultColor: synthDefault,
       channelColors: parseChannelColors(env.SYNTH_CHANNEL_COLORS, colorNames),
+      channelBoost: parseChannelBoost(env.SYNTH_CHANNEL_BOOST === undefined ? '2:3' : env.SYNTH_CHANNEL_BOOST),
     },
     mapping: {
       mode: mappingMode,
@@ -187,4 +204,4 @@ function loadConfigFromProject({ envFile = process.env.ENV_FILE || '.env', env =
   return loadConfig(env, { baseDir });
 }
 
-module.exports = { loadConfig, loadPitch, loadConfigFromProject, parseRgb, parseChannelColors, ConfigError, NAMED_COLORS };
+module.exports = { loadConfig, loadPitch, loadConfigFromProject, parseRgb, parseChannelColors, parseChannelBoost, ConfigError, NAMED_COLORS };

@@ -21,7 +21,7 @@ function createPalette({ colors, synthesia }) {
   const synthByChannel = [];
   for (let ch = 0; ch < 16; ch++) {
     const name = synthesia.channelColors[ch] || synthesia.defaultColor;
-    synthByChannel.push({ name, symbol: SYMBOLS[name] || '*', rgb: scale(colors.named[name], colors.brightness) });
+    synthByChannel.push({ name, symbol: SYMBOLS[name] || '*', rgb: scale(colors.named[name], colors.brightness * (synthesia.channelBoost?.[ch] ?? 1)) });
   }
   return { keyboard, overlap, synthBlack, synthForChannel: (ch) => synthByChannel[ch] };
 }

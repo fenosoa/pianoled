@@ -7,6 +7,12 @@ const { PitchMapper, audioShiftOf, ledShiftOf, keyboardShiftOf } = require('../m
 
 const NO_PITCH = Object.freeze({ audioTransposeSemitones: 0, audioOctaveShift: 0, keyboardPhysicalTransposeSemitones: 0, keyboardPhysicalOctaveShift: 0 });
 
+/** Polyphonic aftertouch (A0) from Synthesia = key light: pressure > 0 lights the note, 0 turns it off. Anything else is returned as is. */
+function hintAsNote(bytes) {
+  if (bytes.length < 3 || (bytes[0] & 0xf0) !== 0xa0) return bytes;
+  return [(bytes[2] > 0 ? 0x90 : 0x80) | (bytes[0] & 0x0f), bytes[1], bytes[2]];
+}
+
 /**
  * Two strictly separate logical paths:
  *   1. keyboardIn  -> synthesiaOut (forwarded unchanged) + engine as source "keyboard"
@@ -150,7 +156,9 @@ class MidiRouter {
   onSynthesia(bytes, ts = monotonicMs()) {
     this.stats.synthesiaIn++;
     this.lastSynthMessageAt = ts;
-    const event = parseMessage(bytes, 'synthesia', ts);
+    // Practice modes ("work on the left hand") send the practiced hand as polyphonic aftertouch, not as notes.
+    const lit = hintAsNote(bytes);
+    const event = parseMessage(lit, 'synthesia', ts);
     if (!event) {
       this.stats.malformed++;
       return;
@@ -164,8 +172,8 @@ class MidiRouter {
     const toKeyboard = this.forwardSynthesia && this.keyboardOut && bytes[0] >= 0x80 && bytes[0] < 0xf0 && this.forwardToKeyboard(bytes, event);
     this.log('IN', 'synthesia', event, toKeyboard ? '  -> keyboard' : '');
     // Octave setting moves only the lit LEDs; the sound sent above is unaffected.
-    for (const msg of this.pitch.translate('led', bytes, this.ledShift)) {
-      this.engine.handle(msg === bytes ? event : parseMessage(msg, 'synthesia', ts));
+    for (const msg of this.pitch.translate('led', lit, this.ledShift)) {
+      this.engine.handle(msg === lit ? event : parseMessage(msg, 'synthesia', ts));
     }
   }
 
