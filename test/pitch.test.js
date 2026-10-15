@@ -124,6 +124,18 @@ test('stop releases the emitted (shifted) notes', () => {
   assert.deepEqual(keyboardOut.sent[1], [0x80, 62, 0]);
 });
 
+test('LED octave shift: keyboard LEDs unchanged, Synthesia gets the note moved back, Note Off follows', () => {
+  const { router, keyboardIn, synthesiaOut, lit } = setup(P({ audioOctaveShift: 1 }));
+  keyboardIn.emit('message', [0x90, 64, 80], 1);
+  assert.deepEqual(synthesiaOut.sent, [[0x90, 52, 80]]);
+  assert.equal(lit(64), 'W');
+  assert.equal(lit(52), null);
+  router.setPitch(P());
+  keyboardIn.emit('message', [0x80, 64, 0], 2);
+  assert.deepEqual(synthesiaOut.sent[1], [0x80, 52, 0]);
+  assert.equal(lit(64), null);
+});
+
 test('LED octave shift: hot change keeps the lit LED released by its own Note Off', () => {
   const { router, synthesiaIn, lit } = setup(P({ audioOctaveShift: 1 }));
   synthesiaIn.emit('message', [0x90, 48, 80], 1);

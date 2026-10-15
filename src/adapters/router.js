@@ -54,6 +54,7 @@ class MidiRouter {
       this.keyboardIn.on('message', (bytes, ts) => this.onKeyboard(bytes, ts));
       this.keyboardIn.on('disconnected', () => {
         this.pitch.clear('kbd');
+        this.pitch.clear('ksyn');
         this.engine.panic('keyboard');
       });
     }
@@ -123,18 +124,25 @@ class MidiRouter {
   handleKeyboard(bytes, ts) {
     const isChannelMessage = bytes[0] >= 0x80 && bytes[0] < 0xf0;
     // Forward first: the player's latency to Synthesia matters more than the LED update.
+    // The LED octave setting moves the Synthesia LEDs, so Synthesia (not the keyboard LEDs) gets the keyboard notes moved back.
     let forwarded = false;
     if (this.forwardKeyboard && isChannelMessage && this.synthesiaOut) {
-      forwarded = this.synthesiaOut.send(Array.from(bytes));
-      if (forwarded) this.stats.forwarded++;
-      else this.stats.forwardDropped++;
+      for (const out of this.pitch.translate('ksyn', bytes, -this.ledShift)) {
+        const sent = this.synthesiaOut.send(Array.from(out));
+        if (sent) this.stats.forwarded++;
+        else this.stats.forwardDropped++;
+        forwarded = forwarded || sent;
+        if (sent && this.echoGuardMs > 0) {
+          const fe = parseMessage(out, 'keyboard', ts);
+          if (fe) this.recentForwards.set(this.echoKey(fe), ts);
+        }
+      }
     }
     const event = parseMessage(bytes, 'keyboard', ts);
     if (!event) {
       this.stats.malformed++;
       return;
     }
-    if (forwarded && this.echoGuardMs > 0) this.recentForwards.set(this.echoKey(event), ts);
     this.log('IN', 'keyboard', event, forwarded ? '  -> synthesia' : this.forwardKeyboard ? '  (not forwarded: out port down)' : '');
     this.engine.handle(event);
   }
