@@ -81,7 +81,7 @@ async function main() {
       else if (msg && msg.type === 'panic') engine.panic(msg.source);
       else if (msg && msg.type === 'pitch') {
         router.setPitch(msg.pitch);
-        logger.info(`[pitch] audio shift ${router.audioShift}, keyboard shift ${router.keyboardShift} (semitones)`);
+        logger.info(`[pitch] audio shift ${router.audioShift}, LED shift ${router.ledShift}, keyboard shift ${router.keyboardShift} (semitones)`);
       }
     });
     process.on('disconnect', () => shutdown(0));

@@ -3,7 +3,7 @@
 const { parseMessage, describe } = require('../midi/messages');
 const { monotonicMs } = require('../metrics');
 const { silentLogger } = require('../logger');
-const { PitchMapper, audioShiftOf, keyboardShiftOf } = require('../midi/pitch');
+const { PitchMapper, audioShiftOf, ledShiftOf, keyboardShiftOf } = require('../midi/pitch');
 
 const NO_PITCH = Object.freeze({ audioTransposeSemitones: 0, audioOctaveShift: 0, keyboardPhysicalTransposeSemitones: 0, keyboardPhysicalOctaveShift: 0 });
 
@@ -45,6 +45,7 @@ class MidiRouter {
   /** Hot update; notes already open keep the number they were emitted with. */
   setPitch(pitch) {
     this.audioShift = audioShiftOf(pitch);
+    this.ledShift = ledShiftOf(pitch);
     this.keyboardShift = keyboardShiftOf(pitch);
   }
 
@@ -59,6 +60,7 @@ class MidiRouter {
     if (this.synthesiaIn) {
       this.synthesiaIn.on('message', (bytes, ts) => this.onSynthesia(bytes, ts));
       this.synthesiaIn.on('disconnected', () => {
+        this.pitch.clear('led');
         this.engine.panic('synthesia');
         this.releaseKeyboardOut();
       });
@@ -153,7 +155,10 @@ class MidiRouter {
     // Channel messages only; forwarded before the LED update to keep the sound as close as possible to the screen.
     const toKeyboard = this.forwardSynthesia && this.keyboardOut && bytes[0] >= 0x80 && bytes[0] < 0xf0 && this.forwardToKeyboard(bytes, event);
     this.log('IN', 'synthesia', event, toKeyboard ? '  -> keyboard' : '');
-    this.engine.handle(event);
+    // Octave setting moves only the lit LEDs; the sound sent above is unaffected.
+    for (const msg of this.pitch.translate('led', bytes, this.ledShift)) {
+      this.engine.handle(msg === bytes ? event : parseMessage(msg, 'synthesia', ts));
+    }
   }
 
   echoKey(event) {
@@ -175,6 +180,7 @@ class MidiRouter {
     if (counts.pressed + counts.sustained === 0) return;
     this.stats.staleClears++;
     this.logger.warn(`[router] no Synthesia message for ${this.synthStaleMs} ms with notes active: clearing Synthesia LEDs`);
+    this.pitch.clear('led');
     this.engine.panic('synthesia');
   }
 }

@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { PitchMapper, shiftNote, audioShiftOf, keyboardShiftOf } = require('../src/midi/pitch');
+const { PitchMapper, shiftNote, audioShiftOf, ledShiftOf, keyboardShiftOf } = require('../src/midi/pitch');
 const { MidiRouter } = require('../src/adapters/router');
 const { loadPitch, ConfigError } = require('../src/config');
 const { makeEngine } = require('./helpers');
@@ -32,7 +32,8 @@ test('pure helpers: bounds and shifts', () => {
   assert.equal(shiftNote(67, -3), 64);
   assert.equal(shiftNote(120, 12), null);
   assert.equal(shiftNote(3, -4), null);
-  assert.equal(audioShiftOf(P({ audioTransposeSemitones: -3, audioOctaveShift: -1 })), -15);
+  assert.equal(audioShiftOf(P({ audioTransposeSemitones: -3, audioOctaveShift: -1 })), -3);
+  assert.equal(ledShiftOf(P({ audioOctaveShift: -1 })), -12);
   assert.equal(keyboardShiftOf(P({ keyboardPhysicalTransposeSemitones: -2, keyboardPhysicalOctaveShift: -1 })), -14);
 });
 
@@ -91,7 +92,9 @@ test('nominal scenario: PSR sends 64 (compensation +3) -> Synthesia and LED get 
 test('octave cases from the validation matrix', () => {
   const a = setup(P({ audioTransposeSemitones: -3, audioOctaveShift: -1 }));
   a.synthesiaIn.emit('message', [0x90, 67, 90], 1);
-  assert.deepEqual(a.keyboardOut.sent, [[0x90, 52, 90]]);
+  assert.deepEqual(a.keyboardOut.sent, [[0x90, 64, 90]]); // octave never changes the sound
+  assert.equal(a.lit(55), 'S');
+  assert.equal(a.lit(67), null);
   const b = setup(P({ keyboardPhysicalTransposeSemitones: 3, keyboardPhysicalOctaveShift: 1 }));
   b.keyboardIn.emit('message', [0x90, 82, 80], 1);
   assert.deepEqual(b.synthesiaOut.sent, [[0x90, 67, 80]]);
@@ -115,8 +118,18 @@ test('hot change during a held note: Note Off at the emitted number, no stuck no
 });
 
 test('stop releases the emitted (shifted) notes', () => {
-  const { router, synthesiaIn, keyboardOut } = setup(P({ audioOctaveShift: 1 }));
+  const { router, synthesiaIn, keyboardOut } = setup(P({ audioTransposeSemitones: 2 }));
   synthesiaIn.emit('message', [0x90, 60, 80], 1);
   router.stop();
-  assert.deepEqual(keyboardOut.sent[1], [0x80, 72, 0]);
+  assert.deepEqual(keyboardOut.sent[1], [0x80, 62, 0]);
+});
+
+test('LED octave shift: hot change keeps the lit LED released by its own Note Off', () => {
+  const { router, synthesiaIn, lit } = setup(P({ audioOctaveShift: 1 }));
+  synthesiaIn.emit('message', [0x90, 48, 80], 1);
+  assert.notEqual(lit(60), null);
+  assert.equal(lit(48), null);
+  router.setPitch(P());
+  synthesiaIn.emit('message', [0x80, 48, 0], 2);
+  assert.equal(lit(60), null);
 });

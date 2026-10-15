@@ -11,9 +11,14 @@ function shiftNote(note, delta) {
   return n >= 0 && n <= 127 ? n : null;
 }
 
-/** Synthesia -> PSR sound shift, in semitones. */
+/** Synthesia -> PSR sound shift, in semitones. The octave setting never changes the sound. */
 function audioShiftOf(pitch) {
-  return pitch.audioTransposeSemitones + 12 * pitch.audioOctaveShift;
+  return pitch.audioTransposeSemitones;
+}
+
+/** Shift of the Synthesia notes lit on the LEDs, in semitones (octave setting only). */
+function ledShiftOf(pitch) {
+  return 12 * pitch.audioOctaveShift;
 }
 
 /** Shift the PSR already applied on its MIDI OUT, in semitones. */
@@ -99,4 +104,4 @@ class PitchMapper {
   }
 }
 
-module.exports = { shiftNote, audioShiftOf, keyboardShiftOf, PitchMapper };
+module.exports = { shiftNote, audioShiftOf, ledShiftOf, keyboardShiftOf, PitchMapper };
