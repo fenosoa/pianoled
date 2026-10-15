@@ -18,12 +18,26 @@ function createPalette({ colors, synthesia }) {
   const keyboard = { name: 'keyboard', symbol: 'W', rgb: scale(colors.keyboard, colors.brightness) };
   const overlap = { name: 'overlap', symbol: 'O', rgb: scale(colors.overlap, colors.brightness * colors.overlapBoost) };
   const synthBlack = { name: 'synthesia-black', symbol: 'K', rgb: scale(colors.synthesiaBlack, colors.brightness) };
+  // "max" channels (waiting notes) ignore BRIGHTNESS: full intensity, also for black keys and overlaps.
+  const overlapMax = { ...overlap, rgb: scale(colors.overlap, colors.overlapBoost) };
   const synthByChannel = [];
+  const blackByChannel = [];
   for (let ch = 0; ch < 16; ch++) {
     const name = synthesia.channelColors[ch] || synthesia.defaultColor;
-    synthByChannel.push({ name, symbol: SYMBOLS[name] || '*', rgb: scale(colors.named[name], colors.brightness * (synthesia.channelBoost?.[ch] ?? 1)) });
+    const boost = synthesia.channelBoost?.[ch] ?? 1;
+    const full = boost === Infinity;
+    const level = full ? 1 : colors.brightness * boost;
+    synthByChannel.push({ name, symbol: SYMBOLS[name] || '*', rgb: scale(colors.named[name], level), full });
+    blackByChannel.push(full ? { ...synthBlack, rgb: scale(colors.synthesiaBlack, 1), full } : synthBlack);
   }
-  return { keyboard, overlap, synthBlack, synthForChannel: (ch) => synthByChannel[ch] };
+  return {
+    keyboard,
+    overlap,
+    overlapMax,
+    synthBlack,
+    synthForChannel: (ch) => synthByChannel[ch],
+    synthBlackForChannel: (ch) => blackByChannel[ch],
+  };
 }
 
 /**
@@ -38,13 +52,13 @@ function renderFrame(store, mapper, palette) {
   for (const [note, channels] of store.litNotes('synthesia')) {
     const led = mapper.ledForNote(note);
     if (led === null) continue;
-    const color = BLACK_PITCH_CLASSES.has(note % 12) ? palette.synthBlack : palette.synthForChannel(channels[0]);
+    const color = BLACK_PITCH_CLASSES.has(note % 12) ? palette.synthBlackForChannel(channels[0]) : palette.synthForChannel(channels[0]);
     if (!cells[led] || cells[led].channel > channels[0]) cells[led] = { ...color, channel: channels[0] };
   }
   for (const note of store.litNotes('keyboard').keys()) {
     const led = mapper.ledForNote(note);
     if (led === null) continue;
-    cells[led] = { ...(cells[led] ? palette.overlap : palette.keyboard), channel: -1 };
+    cells[led] = { ...(cells[led] ? (cells[led].full ? palette.overlapMax : palette.overlap) : palette.keyboard), channel: -1 };
   }
 
   for (let i = 0; i < LED_COUNT; i++) {

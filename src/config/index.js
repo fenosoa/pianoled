@@ -85,17 +85,17 @@ function parseChannelColors(raw, colorNames) {
   return out;
 }
 
-// "2:3" (user-facing channel:brightness multiplier) -> { 1: 3 } (code channels 0..15).
+// "2:3" or "2:max" (user-facing channel:brightness multiplier, max = full intensity) -> { 1: 3 } (code channels 0..15).
 function parseChannelBoost(raw) {
   const out = {};
   if (!raw) return out;
   for (const part of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
-    const m = /^(\d{1,2})\s*:\s*(\d+(?:\.\d+)?)$/.exec(part);
+    const m = /^(\d{1,2})\s*:\s*(\d+(?:\.\d+)?|max)$/i.exec(part);
     if (!m) throw new ConfigError(`SYNTH_CHANNEL_BOOST: invalid entry "${part}" (expected channel:factor)`);
     const ch = Number(m[1]);
-    const factor = Number(m[2]);
+    const factor = m[2].toLowerCase() === 'max' ? Infinity : Number(m[2]);
     if (ch < 1 || ch > 16) throw new ConfigError(`SYNTH_CHANNEL_BOOST: channel ${ch} outside 1..16`);
-    if (factor > 10) throw new ConfigError(`SYNTH_CHANNEL_BOOST: factor ${factor} outside 0..10`);
+    if (factor !== Infinity && factor > 10) throw new ConfigError(`SYNTH_CHANNEL_BOOST: factor ${factor} outside 0..10`);
     out[ch - 1] = factor;
   }
   return out;
@@ -173,7 +173,7 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
     synthesia: {
       defaultColor: synthDefault,
       channelColors: parseChannelColors(env.SYNTH_CHANNEL_COLORS, colorNames),
-      channelBoost: parseChannelBoost(env.SYNTH_CHANNEL_BOOST === undefined ? '2:3' : env.SYNTH_CHANNEL_BOOST),
+      channelBoost: parseChannelBoost(env.SYNTH_CHANNEL_BOOST === undefined ? '2:max' : env.SYNTH_CHANNEL_BOOST),
     },
     mapping: {
       mode: mappingMode,
