@@ -1,0 +1,8 @@
+# torch/torchaudio sont installés à part par setup.ps1 (CUDA ou CPU selon la machine).
+# Alignement forcé (modèle MMS de Meta) — installé depuis GitHub.
+ctc-forced-aligner @ git+https://github.com/MahmoudAshraf97/ctc-forced-aligner.git
+fastapi==0.115.11
+uvicorn==0.34.0
+python-multipart==0.0.20
+httpx==0.28.1
+pytest==9.1.0

@@ -1,0 +1,5 @@
+{
+  "bpm": 120,
+  "key_signature": "C:major",
+  "timeline": "1;C:maj;0.0;0.5\n2;C:maj;0.5;1.0\n3;C:maj;1.0;1.5\n4;C:maj;1.5;2.0\n1;A:min;2.0;2.5\n2;A:min;2.5;3.0\n3;A:min;3.0;3.5\n4;A:min;3.5;4.0\n1;F:maj;4.0;4.5\n2;F:maj;4.5;5.0\n3;F:maj;5.0;5.5\n4;F:maj;5.5;6.0\n1;G:maj;6.0;6.5\n2;G:maj;6.5;7.0\n3;G:maj;7.0;7.5\n4;G:maj;7.5;8.0"
+}

@@ -1,0 +1,92 @@
+/* Couleurs animables : @property permet la transition douce du fond entre sections. */
+@property --c1 { syntax: '<color>'; inherits: true; initial-value: #111827; }
+@property --c2 { syntax: '<color>'; inherits: true; initial-value: #312e81; }
+@property --c3 { syntax: '<color>'; inherits: true; initial-value: #0e7490; }
+@property --fill { syntax: '<color>'; inherits: true; initial-value: #a7f3d0; }
+
+.kr-stage {
+  position: relative; width: 100%; height: 100%; overflow: hidden;
+  font-family: var(--font); font-weight: 800; color: var(--base);
+  transition: --c1 1.4s, --c2 1.4s, --c3 1.4s, --fill 0.8s;
+  user-select: none; -webkit-user-select: none;
+}
+.kr-stage[data-type='couplet'] { --c1: var(--couplet-c1); --c2: var(--couplet-c2); --c3: var(--couplet-c3); --fill: var(--couplet-fill); }
+.kr-stage[data-type='refrain'] { --c1: var(--refrain-c1); --c2: var(--refrain-c2); --c3: var(--refrain-c3); --fill: var(--refrain-fill); }
+.kr-stage[data-type='pont']    { --c1: var(--pont-c1);    --c2: var(--pont-c2);    --c3: var(--pont-c3);    --fill: var(--pont-fill); }
+.kr-stage[data-type='intro']   { --c1: var(--intro-c1);   --c2: var(--intro-c2);   --c3: var(--intro-c3);   --fill: var(--intro-fill); }
+.kr-stage[data-type='outro']   { --c1: var(--outro-c1);   --c2: var(--outro-c2);   --c3: var(--outro-c3);   --fill: var(--outro-fill); }
+
+/* Fond : dégradé qui dérive lentement */
+.kr-bg {
+  position: absolute; inset: -20%;
+  background: linear-gradient(120deg, var(--c1), var(--c2), var(--c3), var(--c1));
+  background-size: 300% 300%;
+  animation: kr-drift 24s ease-in-out infinite, kr-hue 90s linear infinite;
+}
+@keyframes kr-drift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes kr-hue { to { filter: hue-rotate(360deg); } }
+
+/* Pulsation lumineuse (refrain uniquement) */
+.kr-glow {
+  position: absolute; inset: 0; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.55), transparent 62%);
+  transition: opacity .8s;
+}
+.kr-stage[data-type='refrain'] .kr-glow { opacity: 1; animation: kr-pulse 1.1s ease-in-out infinite; }
+@keyframes kr-pulse { 0%,100% { opacity: .08; } 50% { opacity: .38; } }
+
+/* Lignes : glissement vers le haut. Positions exprimées en vh/vw pour rester lisible à 3 m. */
+.kr-lines { position: absolute; inset: 0; }
+.kr-line {
+  position: absolute; left: 0; right: 0; top: 0; padding: 0 4vw;
+  text-align: center; line-height: 1.12; text-wrap: balance;
+  font-size: calc(min(10vw, 15vh) * var(--fit, 1));
+  transform-origin: 50% 0;
+  transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .5s ease;
+  will-change: transform, opacity;
+}
+.kr-line.enter { transform: translateY(86vh) scale(.4); opacity: 0; }
+.kr-line.next  { transform: translateY(62vh) scale(.55); opacity: .85; }
+.kr-line.cur   { transform: translateY(24vh) scale(1); opacity: 1; }
+.kr-line.out   { transform: translateY(4vh) scale(.8); opacity: 0; }
+
+/* Mot : couche de base + couche de remplissage rognée (clip-path piloté à chaque frame) */
+.kr-w { position: relative; display: inline-block; white-space: pre; }
+.kr-b, .kr-f {
+  -webkit-text-stroke: .09em var(--outline); paint-order: stroke fill;
+  text-shadow: 0 .06em .14em rgba(0,0,0,.45);
+}
+.kr-b { color: var(--base); }
+.kr-f { position: absolute; left: 0; top: 0; color: var(--fill); clip-path: inset(0 100% 0 0); }
+
+/* Compte à rebours en points */
+.kr-dots {
+  position: absolute; left: 0; right: 0; top: 7vh; display: flex; justify-content: center; gap: 4vw;
+  opacity: 0; transition: opacity .3s;
+}
+.kr-dots.on { opacity: 1; }
+.kr-dots i {
+  width: 6vh; height: 6vh; border-radius: 50%; background: rgba(255,255,255,.25);
+  border: .6vh solid var(--outline); transition: background .15s, transform .2s;
+}
+.kr-dots i.lit { background: var(--fill); transform: scale(1.15); }
+
+/* Attente instrumentale : titre + égaliseur animé */
+.kr-idle {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
+  opacity: 0; transition: opacity .8s; text-align: center; padding: 0 6vw;
+}
+.kr-idle.on { opacity: 1; }
+.kr-title { font-size: min(9vw, 13vh); -webkit-text-stroke: .08em var(--outline); paint-order: stroke fill; }
+.kr-artist { font-size: min(5vw, 7vh); opacity: .85; -webkit-text-stroke: .08em var(--outline); paint-order: stroke fill; }
+.kr-eq { display: flex; gap: 1.2vw; align-items: flex-end; height: 12vh; }
+.kr-eq i { width: 2vw; background: var(--fill); border-radius: 1vw; height: 100%; transform-origin: bottom; animation: kr-eq 1s ease-in-out infinite; }
+.kr-eq i:nth-child(2) { animation-delay: -.3s; } .kr-eq i:nth-child(3) { animation-delay: -.6s; }
+.kr-eq i:nth-child(4) { animation-delay: -.15s; } .kr-eq i:nth-child(5) { animation-delay: -.45s; }
+@keyframes kr-eq { 0%,100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .kr-bg, .kr-glow, .kr-eq i { animation: none !important; }
+}
+
+.kr-instant, .kr-instant * { transition: none !important; }
