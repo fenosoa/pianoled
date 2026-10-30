@@ -1,0 +1,24 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; color: #222; }
+.pl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 800px) { .pl { grid-template-columns: 1fr; } }
+.pl-col h2 { margin: 0 0 10px; font-size: 20px; }
+.pl-count { font-size: 14px; font-weight: 400; color: #777; margin-left: 6px; }
+.pl-notice { background: #fde8e8; color: #a33; padding: 8px 12px; border-radius: 8px; margin: 0 0 10px; }
+.pl-search { width: 100%; padding: 12px 14px; font-size: 18px; border: 2px solid #ccc; border-radius: 10px; margin-bottom: 10px; }
+.pl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pl-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #fff;
+  border: 2px solid #e2e2e2; border-radius: 10px;
+}
+.pl-item.current { border-color: #4a8; background: #eaf6ef; }
+.pl-item.over { border-color: #26c; border-style: dashed; }
+.pl-item[draggable="true"] { cursor: grab; }
+.pl-grip { color: #aaa; font-size: 20px; user-select: none; }
+.pl-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-item button {
+  min-height: 40px; min-width: 40px; padding: 4px 12px; font-size: 16px; border: 0; border-radius: 8px;
+  background: #1d3a2c; color: #fff; cursor: pointer; white-space: nowrap; touch-action: manipulation;
+}
+.pl-item button:disabled { opacity: 0.3; cursor: default; }
+.pl-empty { color: #777; padding: 12px; }

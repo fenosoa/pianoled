@@ -1,4 +1,4 @@
-// Côté maître : reçoit les commandes (Stream Deck) et diffuse la chanson (paroles) et l'état de lecture au hub WebSocket du serveur Vite
+// Côté maître : reçoit les commandes (Stream Deck, page playlist) et la file de lecture, et diffuse la chanson (paroles) et l'état de lecture au hub WebSocket du serveur Vite
 // (/sync, voir vite.config.js). Reconnexion automatique ; le dernier état est renvoyé à chaque (re)connexion.
 const RETRY_MS = 2000;
 
@@ -7,7 +7,7 @@ export function createSyncMaster(url = `${location.protocol === 'https:' ? 'wss'
   let closed = false;
   let timer = 0;
   const last = { song: null, state: null };
-  let onCommand = null;
+  let onMessage = null;
 
   const open = () => {
     if (closed) return;
@@ -20,7 +20,7 @@ export function createSyncMaster(url = `${location.protocol === 'https:' ? 'wss'
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'command') onCommand?.(msg);
+        if (msg.type === 'command' || msg.type === 'queue') onMessage?.(msg);
       } catch {
         /* message illisible : ignoré */
       }
@@ -39,11 +39,11 @@ export function createSyncMaster(url = `${location.protocol === 'https:' ? 'wss'
   };
 
   return {
-    sendSong: (name, title, lyrics) => send({ type: 'song', name, title, lyrics }),
+    sendSong: (name, title, lyrics, id) => send({ type: 'song', name, title, lyrics, id }),
     sendState: (video) =>
       send({ type: 'state', playing: !video.paused && !video.ended, time: video.currentTime, rate: video.playbackRate }),
-    setCommandHandler: (fn) => {
-      onCommand = fn;
+    setMessageHandler: (fn) => {
+      onMessage = fn;
     },
     close: () => {
       closed = true;

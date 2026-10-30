@@ -3,6 +3,7 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { WebSocketServer } from 'ws';
+import { createPlaylistStore, playlistMiddleware } from './playlist-server.js';
 
 // Dossier des stems (web_chords_karaoke/piano_stems_output) : un sous-répertoire par chanson (bass/drums/guitar/instrumental/other/piano/vocals.flac + <nom>.chords.json)
 const STEMS_DIR = process.env.STEMS_DIR || path.resolve(import.meta.dirname, 'piano_stems_output');
@@ -116,6 +117,18 @@ function attachSyncHub({ httpServer, middlewares }) {
   const followers = new Set();
   let master = null;
   const last = { song: null, state: null };
+  const store = createPlaylistStore({ file: path.resolve(import.meta.dirname, 'playlist.json'), listSongs });
+  const sendMaster = (msg) => {
+    const ok = master?.readyState === 1;
+    if (ok) master.send(JSON.stringify(msg));
+    return ok;
+  };
+  middlewares.use(
+    playlistMiddleware(store, {
+      onChange: (queue) => sendMaster({ type: 'queue', queue }),
+      playNow: (name) => sendMaster({ type: 'command', action: 'play', name }),
+    })
+  );
 
   middlewares.use((req, res, next) => {
     const match = CONTROL_RE.exec(req.url.split('?')[0]);
@@ -146,6 +159,7 @@ function attachSyncHub({ httpServer, middlewares }) {
         if (role === 'master') {
           if (master && master !== ws) master.close();
           master = ws;
+          ws.send(JSON.stringify({ type: 'queue', queue: store.queue() }));
         } else {
           followers.add(ws);
           if (last.song) ws.send(last.song);
@@ -154,6 +168,7 @@ function attachSyncHub({ httpServer, middlewares }) {
         return;
       }
       if (role !== 'master' || (msg.type !== 'song' && msg.type !== 'state')) return;
+      if (msg.type === 'song') store.setCurrent(msg.id);
       const data = String(raw);
       last[msg.type] = data;
       followers.forEach((f) => f.readyState === 1 && f.send(data));
@@ -174,6 +189,7 @@ function attachSyncHub({ httpServer, middlewares }) {
 
 export default defineConfig({
   plugins: [react(), stemsPlugin, syncPlugin],
+  build: { rollupOptions: { input: { main: path.resolve(import.meta.dirname, 'index.html'), playlist: path.resolve(import.meta.dirname, 'playlist.html') } } },
   server: { port: 5180, host: true, watch: { ignored: ['**/piano_stems_output/**'] } },
   preview: { port: 5181, host: true },
 });

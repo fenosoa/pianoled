@@ -65,7 +65,7 @@ const parseChordifyData = (rawChordsString) => {
     .filter((item) => item !== null);
 };
 
-const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProgressUpdate, songTitle, onPrevious, onNext }) => {
+const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProgressUpdate, songTitle, onPrevious, onNext, songId, onQueue, onSelect }) => {
   const videoRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -159,7 +159,8 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     setActiveIndex(-1);
     setCurrentTime(0);
     setDuration(0);
-    if (wasPlaying) video.play().catch(() => {});
+    if (wasPlaying || playOnLoadRef.current) video.play().catch(() => {});
+    playOnLoadRef.current = false;
     return () => hls?.destroy();
   }, [hlsUrl]);
 
@@ -240,6 +241,9 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
 
   // Commandes de transport distantes (Stream Deck) : play/pause, recommencer, chanson suivante / précédente
   const transportRef = useRef({});
+  const remoteRef = useRef({}); // callbacks du parent, lus par le hub sans le reconnecter à chaque rendu
+  remoteRef.current = { onQueue };
+  const playOnLoadRef = useRef(false); // « lire maintenant » : la chanson choisie démarre dès son chargement
   transportRef.current = {
     'play-pause': togglePlay,
     restart: () => {
@@ -251,6 +255,11 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     },
     next: onNext,
     previous: onPrevious,
+    play: (name) => {
+      if (name === songId) return transportRef.current.restart();
+      playOnLoadRef.current = true;
+      onSelect?.(name);
+    },
   };
 
   // --- MOTEUR DE SYNCHRONISATION ---
@@ -281,11 +290,12 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     const sync = createSyncMaster();
     syncRef.current = sync;
     // Commandes distantes (Stream Deck via /control/mixer/<n>) : mêmes actions que les touches 1 à 0
-    sync.setCommandHandler(({ key, action }) => {
-      if (key !== undefined) {
-        if (Object.hasOwn(MIXER_SHORTCUTS, key)) mixerActionRef.current?.(MIXER_SHORTCUTS[key]);
+    sync.setMessageHandler((msg) => {
+      if (msg.type === 'queue') remoteRef.current.onQueue?.(msg.queue);
+      else if (msg.key !== undefined) {
+        if (Object.hasOwn(MIXER_SHORTCUTS, msg.key)) mixerActionRef.current?.(MIXER_SHORTCUTS[msg.key]);
       } else {
-        transportRef.current[action]?.();
+        transportRef.current[msg.action]?.(msg.name);
       }
     });
     const push = () => sync.sendState(video);
@@ -301,9 +311,9 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
   }, []);
 
   useEffect(() => {
-    syncRef.current?.sendSong(songTitle ?? '', songTitle ?? '', lyricsData ?? null);
+    syncRef.current?.sendSong(songTitle ?? '', songTitle ?? '', lyricsData ?? null, songId ?? null);
     if (videoRef.current) syncRef.current?.sendState(videoRef.current);
-  }, [lyricsData, songTitle]);
+  }, [lyricsData, songTitle, songId]);
 
   // --- CLAVIER (réel ou virtuel/injecté) : ← = -3 s, Espace = play/pause, 1–0 = mixeur (voir MIXER_SHORTCUTS) ---
   useEffect(() => {

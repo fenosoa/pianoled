@@ -42,30 +42,41 @@ const params = new URLSearchParams(window.location.search);
 const hasOverride = ['timeline', 'media', 'video', 'audio'].some((k) => params.has(k));
 
 function App() {
-  const [playlist, setPlaylist] = React.useState(null);
+  const [library, setLibrary] = React.useState(null); // toutes les chansons (pistes, accords, paroles)
+  const [queue, setQueue] = React.useState(null); // noms ordonnés (page /playlist.html) ; null = toute la bibliothèque
   const [timelineData, setTimelineData] = React.useState(null);
   const [lyricsData, setLyricsData] = React.useState(null);
-  const [songIndex, setSongIndex] = React.useState(0);
+  const [songName, setSongName] = React.useState(null);
 
-  // Chansons = sous-répertoires de STEMS_DIR (voir vite.config.js)
+  // Chansons = sous-répertoires de STEMS_DIR (voir vite.config.js) ; ordre = file de lecture partagée
   React.useEffect(() => {
-    fetch('/stems/index.json')
-      .then((r) => r.json())
-      .then((list) => {
-        setPlaylist(list);
-        setSongIndex(Math.max(0, list.findIndex((s) => s.name === params.get('song'))));
+    Promise.all([
+      fetch('/stems/index.json').then((r) => r.json()),
+      fetch('/playlist/api').then((r) => r.json()).catch(() => null),
+    ])
+      .then(([list, shared]) => {
+        const names = shared?.queue ?? list.map((s) => s.name);
+        setLibrary(list);
+        setQueue(names);
+        setSongName(names.includes(params.get('song')) ? params.get('song') : names[0] ?? list[0]?.name ?? null);
       })
       .catch((e) => {
         console.error('Stems introuvables', e);
-        setPlaylist([]);
+        setLibrary([]);
       });
   }, []);
 
-  const song = playlist?.[songIndex] ?? {};
+  const playlist = React.useMemo(() => {
+    const byName = new Map((library ?? []).map((s) => [s.name, s]));
+    return (queue ?? []).map((n) => byName.get(n)).filter(Boolean);
+  }, [library, queue]);
+
+  // La chanson en cours reste jouée même si on la retire de la file
+  const song = (library ?? []).find((s) => s.name === songName) ?? {};
   const timelineUrl = params.get('timeline') || song.json || '/timeline.json';
 
   React.useEffect(() => {
-    if (!playlist) return;
+    if (!library) return;
     let cancelled = false;
     setTimelineData(null); // évite d'afficher les accords de la chanson précédente
     fetch(timelineUrl)
@@ -75,7 +86,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [timelineUrl, playlist]);
+  }, [timelineUrl, library]);
 
   const lyricsUrl = params.get('lyrics') || song.lyrics || lyricsByName[song.name];
   React.useEffect(() => {
@@ -91,27 +102,35 @@ function App() {
     };
   }, [lyricsUrl]);
 
-  const goTo = (delta) => {
-    const next = (songIndex + delta + playlist.length) % playlist.length;
-    setSongIndex(next);
+  const select = (name) => {
+    setSongName(name);
     const url = new URL(window.location.href);
-    url.searchParams.set('song', playlist[next].name);
+    url.searchParams.set('song', name);
     window.history.replaceState(null, '', url);
+  };
+
+  const goTo = (delta) => {
+    const i = playlist.findIndex((s) => s.name === songName);
+    const next = i < 0 ? (delta > 0 ? 0 : playlist.length - 1) : (i + delta + playlist.length) % playlist.length;
+    select(playlist[next].name);
   };
 
   const override = params.get('media') || params.get('video') || params.get('audio');
   const videoMeta = override
     ? { hlsUrl: override, posterUrl: params.get('poster') }
     : song.tracks && { tracks: song.tracks, posterUrl: params.get('poster') };
-  const canNavigate = (playlist?.length ?? 0) > 1 && !hasOverride;
+  const canNavigate = playlist.length > 1 && !hasOverride;
 
-  if (!playlist) return null;
+  if (!library) return null;
   return (
     <VideoPlayer
       videoMeta={videoMeta}
       timelineData={timelineData}
       lyricsData={lyricsData}
       songTitle={song.title}
+      songId={song.name}
+      onQueue={setQueue}
+      onSelect={hasOverride ? undefined : select}
       onPrevious={canNavigate ? () => goTo(-1) : undefined}
       onNext={canNavigate ? () => goTo(1) : undefined}
     />
