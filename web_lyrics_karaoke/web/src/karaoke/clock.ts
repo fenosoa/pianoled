@@ -82,3 +82,99 @@ export class ManualClock implements Clock {
     return () => void this.cbs.seek.delete(cb);
   }
 }
+
+export interface SyncSong {
+  name: string;
+  title: string;
+  lyrics: import('./types').LyricsJson | null;
+}
+
+/**
+ * Horloge pilotée par WebSocket : le lecteur d'accords (maître, web_chords_karaoke) joue l'audio et
+ * diffuse chanson + { playing, time, rate } à chaque événement et chaque seconde ; ici on interpole entre deux messages.
+ */
+export class WebSocketClock implements Clock {
+  private ws: WebSocket | null = null;
+  private timer = 0;
+  private closed = false;
+  private t = 0;
+  private at = 0;
+  private playing = false;
+  private rate = 1;
+  private cbs = { play: new Set<() => void>(), pause: new Set<() => void>(), seek: new Set<(t: number) => void>() };
+  private songCbs = new Set<(s: SyncSong) => void>();
+  private statusCbs = new Set<(connected: boolean) => void>();
+
+  constructor(private url: string) {
+    this.connect();
+  }
+
+  private connect(): void {
+    if (this.closed) return;
+    const ws = (this.ws = new WebSocket(this.url));
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'hello', role: 'follower' }));
+      this.statusCbs.forEach((cb) => cb(true));
+    };
+    ws.onclose = () => {
+      this.statusCbs.forEach((cb) => cb(false));
+      this.timer = window.setTimeout(() => this.connect(), 2000);
+    };
+    ws.onerror = () => ws.close();
+    ws.onmessage = (ev) => {
+      let m: any;
+      try {
+        m = JSON.parse(ev.data);
+      } catch {
+        return;
+      }
+      if (m.type === 'song') this.songCbs.forEach((cb) => cb(m));
+      else if (m.type === 'state') this.apply(m);
+    };
+  }
+
+  private apply(m: { playing: boolean; time: number; rate?: number }): void {
+    const predicted = this.now();
+    const wasPlaying = this.playing;
+    this.t = m.time;
+    this.at = performance.now();
+    this.playing = m.playing;
+    this.rate = m.rate || 1;
+    if (m.playing && !wasPlaying) this.cbs.play.forEach((cb) => cb());
+    else if (!m.playing && wasPlaying) this.cbs.pause.forEach((cb) => cb());
+    // saut franc (seek, boucle) ; les petits écarts des battements sont absorbés par l'interpolation
+    if (Math.abs(m.time - predicted) > 0.5) this.cbs.seek.forEach((cb) => cb(m.time));
+  }
+
+  now(): number {
+    return this.playing ? this.t + ((performance.now() - this.at) / 1000) * this.rate : this.t;
+  }
+  isPlaying(): boolean {
+    return this.playing;
+  }
+  onSong(cb: (s: SyncSong) => void) {
+    this.songCbs.add(cb);
+    return () => void this.songCbs.delete(cb);
+  }
+  onStatus(cb: (connected: boolean) => void) {
+    this.statusCbs.add(cb);
+    return () => void this.statusCbs.delete(cb);
+  }
+  onPlay(cb: () => void) {
+    this.cbs.play.add(cb);
+    return () => void this.cbs.play.delete(cb);
+  }
+  onPause(cb: () => void) {
+    this.cbs.pause.add(cb);
+    return () => void this.cbs.pause.delete(cb);
+  }
+  onSeek(cb: (t: number) => void) {
+    this.cbs.seek.add(cb);
+    return () => void this.cbs.seek.delete(cb);
+  }
+  close(): void {
+    this.closed = true;
+    clearTimeout(this.timer);
+    this.ws?.close();
+  }
+}

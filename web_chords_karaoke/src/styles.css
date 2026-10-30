@@ -21,6 +21,12 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
   display: flex; flex-direction: column; overflow-y: auto; background: #fafafa;
 }
 
+/* ENTÊTE FIGÉ : reste visible quand le panneau défile */
+.panel-header {
+  flex: 0 0 auto; position: sticky; top: 0; z-index: 30; background: #fafafa;
+  padding-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
 /* HUD */
 .meta-overlay {
   position: absolute; top: 10px; right: 10px; display: flex;
@@ -59,7 +65,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
   font-weight: 700; font-size: clamp(14px, 2.4vmin, 20px); color: #333;
 }
 .nav-button {
-  width: 2.6em; height: 2.6em; font-size: clamp(16px, 2.8vmin, 24px); border-radius: 50%;
+  touch-action: manipulation; width: 2.6em; height: 2.6em; font-size: clamp(16px, 2.8vmin, 24px); border-radius: 50%;
   background: #fff; color: #333; border: 1px solid #ccc; cursor: pointer;
 }
 .nav-button:hover { background: #f0f0f0; }
@@ -151,9 +157,11 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
 }
 
 /* Mixer : une pastille par piste (clic = couper / réactiver) */
-.mixer { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 6px 0; }
+.mixer { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 10px clamp(6px, 2vw, 24px); }
 .mixer-button {
-  padding: 4px 12px; border-radius: 999px; border: 1px solid #4a8; background: #1d3a2c;
-  color: #fff; font-size: 0.8rem; cursor: pointer;
+  min-height: 52px; min-width: 96px; padding: 10px 26px; border-radius: 999px; border: 2px solid #4a8; background: #1d3a2c;
+  color: #fff; font-size: clamp(18px, 2.6vmin, 26px); font-weight: 600; cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
 }
+.mixer-button:active { transform: scale(0.96); }
 .mixer-button.muted { background: transparent; border-color: #555; color: #888; text-decoration: line-through; }

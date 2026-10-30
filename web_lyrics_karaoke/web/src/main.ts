@@ -1,14 +1,19 @@
 import './style.css';
 import { mountPlayerPage } from './pages/playerPage';
+import { mountSyncPage } from './pages/syncPage';
 
 const app = document.getElementById('app')!;
 let dispose: (() => void) | null = null;
 
-/** Routeur minimal par hash : #/ (liste) et #/play/<id>[?preview=12.5]. */
+/** Routeur minimal par hash : #/ (liste), #/sync (piloté par le lecteur d'accords) et #/play/<id>[?preview=12.5]. */
 async function route(): Promise<void> {
   dispose?.();
   dispose = null;
   const [path, query = ''] = location.hash.slice(1).split('?');
+  if (path === '/sync') {
+    dispose = mountSyncPage(app, new URLSearchParams(query));
+    return;
+  }
   const m = path.match(/^\/play\/(\w+)$/);
   if (m) {
     dispose = await mountPlayerPage(app, m[1], new URLSearchParams(query));
@@ -18,7 +23,7 @@ async function route(): Promise<void> {
 }
 
 async function mountHome(): Promise<void> {
-  app.innerHTML = '<main class="home"><h1>🎤 Karaoke Studio</h1><ul id="songs">Chargement…</ul></main>';
+  app.innerHTML = '<main class="home"><h1>🎤 Karaoke Studio</h1><p><a href="#/sync">📡 Suivre le lecteur d’accords</a></p><ul id="songs">Chargement…</ul></main>';
   const ul = document.getElementById('songs')!;
   try {
     const songs: { id: string; title: string; artist: string; status: string }[] = await (await fetch('/api/songs')).json();

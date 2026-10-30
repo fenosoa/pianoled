@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import VideoPlayer from './g-video-player.component.jsx';
 import './styles.css';
 
-// --- PAROLES (facultatives) : media/<nom>.lyrics.json, exportées par web_lyrics_karaoke ---
+// --- PAROLES (facultatives) : <chanson>/<nom>.lyrics.json dans piano_stems_output (voir vite.config.js) ;
+// repli sur media/<nom>.lyrics.json ---
 const lyricFiles = import.meta.glob('../media/*.lyrics.json', { query: '?url', import: 'default', eager: true });
 const lyricsByName = {};
 for (const [path, url] of Object.entries(lyricFiles)) {
@@ -76,7 +77,7 @@ function App() {
     };
   }, [timelineUrl, playlist]);
 
-  const lyricsUrl = params.get('lyrics') || lyricsByName[song.name];
+  const lyricsUrl = params.get('lyrics') || song.lyrics || lyricsByName[song.name];
   React.useEffect(() => {
     let cancelled = false;
     setLyricsData(null);

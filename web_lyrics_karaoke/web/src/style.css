@@ -30,3 +30,4 @@ a { color: var(--accent); }
   position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.35); z-index: 5;
 }
 .player .start-overlay button { font-size: 2rem; height: 5rem; padding: 0 2.5rem; background: var(--accent); color: #1a1030; font-weight: 800; }
+.player .sync-status { flex: 1; text-align: center; opacity: .8; }

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { WebSocketServer } from 'ws';
 
 // Dossier des stems (web_chords_karaoke/piano_stems_output) : un sous-répertoire par chanson (bass/drums/guitar/instrumental/other/piano/vocals.flac + <nom>.chords.json)
 const STEMS_DIR = process.env.STEMS_DIR || path.resolve(import.meta.dirname, 'piano_stems_output');
@@ -26,6 +27,7 @@ const listSongs = () => {
     const dir = path.join(STEMS_DIR, entry.name);
     const files = fs.readdirSync(dir);
     const chords = files.find((f) => f.endsWith('.chords.json'));
+    const lyrics = files.find((f) => f.endsWith('.lyrics.json'));
     const tracks = files
       .filter((f) => f.endsWith('.flac'))
       .map((f) => path.basename(f, '.flac'))
@@ -38,6 +40,7 @@ const listSongs = () => {
       name: entry.name,
       title: meta?.title || entry.name,
       json: url(chords),
+      lyrics: lyrics ? url(lyrics) : null,
       tracks: tracks.map((t) => ({ name: t, url: url(`${t}.flac`) })),
     });
   }
@@ -88,8 +91,75 @@ const stemsPlugin = {
   },
 };
 
+// --- SYNCHRO : le lecteur d'accords (maître) diffuse chanson + position aux suiveurs (web_lyrics_karaoke) ---
+// Protocole JSON : le client se déclare { type:'hello', role:'master'|'follower' } ; les messages du maître
+// ({type:'song'} paroles + titre, {type:'state'} playing/time/rate) sont relayés aux suiveurs et mémorisés
+// pour être rejoués à un suiveur qui arrive en cours de route.
+const SYNC_PATH = '/sync';
+const syncPlugin = {
+  name: 'sync-hub',
+  configureServer(server) {
+    attachSyncHub(server.httpServer);
+  },
+  configurePreviewServer(server) {
+    attachSyncHub(server.httpServer);
+  },
+};
+
+function attachSyncHub(httpServer) {
+  if (!httpServer) return;
+  const wss = new WebSocketServer({ noServer: true });
+  const followers = new Set();
+  let master = null;
+  const last = { song: null, state: null };
+
+  httpServer.on('upgrade', (req, socket, head) => {
+    if (req.url.split('?')[0] !== SYNC_PATH) return; // laisse le HMR de Vite tranquille
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws));
+  });
+
+  wss.on('connection', (ws) => {
+    let role = null;
+    ws.on('message', (raw) => {
+      let msg;
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return;
+      }
+      if (msg.type === 'hello') {
+        role = msg.role === 'master' ? 'master' : 'follower';
+        if (role === 'master') {
+          if (master && master !== ws) master.close();
+          master = ws;
+        } else {
+          followers.add(ws);
+          if (last.song) ws.send(last.song);
+          if (last.state) ws.send(last.state);
+        }
+        return;
+      }
+      if (role !== 'master' || (msg.type !== 'song' && msg.type !== 'state')) return;
+      const data = String(raw);
+      last[msg.type] = data;
+      followers.forEach((f) => f.readyState === 1 && f.send(data));
+    });
+    ws.on('close', () => {
+      followers.delete(ws);
+      if (master === ws) {
+        master = null;
+        const paused = last.state && JSON.stringify({ ...JSON.parse(last.state), playing: false });
+        if (paused) {
+          last.state = paused;
+          followers.forEach((f) => f.readyState === 1 && f.send(paused));
+        }
+      }
+    });
+  });
+}
+
 export default defineConfig({
-  plugins: [react(), stemsPlugin],
+  plugins: [react(), stemsPlugin, syncPlugin],
   server: { port: 5180, host: true, watch: { ignored: ['**/piano_stems_output/**'] } },
   preview: { port: 5181, host: true },
 });

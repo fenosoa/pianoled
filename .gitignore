@@ -7,4 +7,4 @@ ui/dist/
 config/*.bak
 stems_generator_karaoke/backup
 stems_generator_karaoke/stems_gen/models
-.venv/*
+.venv/

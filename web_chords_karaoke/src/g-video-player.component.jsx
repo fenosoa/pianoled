@@ -1,6 +1,7 @@
 import Hls from 'hls.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { simplifyChord } from './chords-helper';
+import { createSyncMaster } from './sync-master';
 
 // --- CONFIGURATION ---
 const LOOKAHEAD_OFFSET = 0.25; // 250ms d'avance pour l'anticipation
@@ -219,6 +220,30 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     return () => clearInterval(intervalId);
   }, [parsedTimeline, onProgressUpdate, seeking]);
 
+  // --- SYNCHRO WebSocket : ce lecteur est le maître de la timeline de web_lyrics_karaoke ---
+  const syncRef = useRef(null);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || new URLSearchParams(location.search).get('sync') === 'off') return;
+    const sync = createSyncMaster();
+    syncRef.current = sync;
+    const push = () => sync.sendState(video);
+    const events = ['play', 'pause', 'seeked', 'ratechange', 'ended', 'loadedmetadata'];
+    events.forEach((e) => video.addEventListener(e, push));
+    const beat = setInterval(() => { if (!video.paused) push(); }, 1000);
+    return () => {
+      clearInterval(beat);
+      events.forEach((e) => video.removeEventListener(e, push));
+      sync.close();
+      syncRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    syncRef.current?.sendSong(songTitle ?? '', songTitle ?? '', lyricsData ?? null);
+    if (videoRef.current) syncRef.current?.sendState(videoRef.current);
+  }, [lyricsData, songTitle]);
+
   // --- CLAVIER (réel ou virtuel/injecté) : ← = -3 s, Espace = play/pause ---
   useEffect(() => {
     const isSpace = (e) => e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
@@ -366,8 +391,9 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
       </div>
 
       <div className="panel">
-      {/* 2. BOUTON PLAY */}
-      {songTitle && <div className="song-title">{songTitle}</div>}
+      {/* 2. ENTÊTE FIGÉ : titre, play, sélection des stems */}
+      <div className="panel-header">
+      {songTitle &&<div className="song-title">{songTitle}</div>}
       <div className="top-row">
       {metaInfo ? <div className="info-side left">
           <span>
@@ -418,6 +444,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
           ))}
         </div>
       )}
+      </div>
 
       {/* 3. PAROLES (taille fixe, au-dessus des accords) */}
       {renderLyrics()}
