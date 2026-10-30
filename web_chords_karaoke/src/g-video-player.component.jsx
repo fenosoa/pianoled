@@ -1,6 +1,6 @@
 import Hls from 'hls.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { simplifyChord } from './chords-helper';
+import { capoFor, simplifyChord } from './chords-helper';
 import { createSyncMaster } from './sync-master';
 
 // --- CONFIGURATION ---
@@ -135,6 +135,11 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
       originalKey: timelineData.original_key ? formatKey(timelineData.original_key) : null,
       transposeUp: timelineData.transpose_up,
       transposeDown: timelineData.transpose_down,
+      capo: timelineData.original_key
+        ? capoFor(timelineData.original_key, timelineData.key_signature)
+        : timelineData.transpose_down != null
+          ? (12 - (timelineData.transpose_down % 12)) % 12 // sans clé d'origine : TD -1 => capo 1
+          : null,
     };
   }, [timelineData]);
 
@@ -474,6 +479,8 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
             {metaInfo.transposeUp != null && `TU : ${metaInfo.transposeUp}`}
             {metaInfo.transposeUp != null && metaInfo.transposeDown != null && '  '}
             {metaInfo.transposeDown != null && `TD : ${metaInfo.transposeDown}`}
+            {metaInfo.capo != null && '  '}
+            {metaInfo.capo != null && `Capo : ${metaInfo.capo}`}
           </span>
       </div> : <div className="info-side" />}
       <div className="controls">
