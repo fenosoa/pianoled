@@ -150,6 +150,9 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     () => (timelineData?.timeline_key ?? []).filter((k) => Number.isFinite(k.time) && k.transpose != null),
     [timelineData]
   );
+  // Valeur affichée = écart relatif au TU de base (TU 9, timelineKey 7 → 2) : le nombre d'appuis ↑/↓ pour ajuster le transpose en direct
+  const baseTU = metaInfo?.transposeUp ?? (metaInfo?.transposeDown != null ? (metaInfo.transposeDown + 12) % 12 : null);
+  const relativeShift = (transpose) => (baseTU == null ? transpose : baseTU - (((transpose % 12) + 12) % 12));
   const keyChangeAt = (t) => keyChanges.reduce((acc, k, i) => (t >= k.time - KEY_CHANGE_LEAD ? i : acc), -1);
   const activeKeyChange = keyChangeAt(currentTime);
   // Teinte du fond des accords selon le tronçon de tonalité (jamais jaune : réservé à l'accord à jouer)
@@ -498,7 +501,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
             {metaInfo.capo != null && `Capo : ${metaInfo.capo}`}
           </span>
           {keyChanges.map((k, i) => (
-            <span key={i} className={`key-change${i === activeKeyChange ? ' active' : ''}`}>{k.transpose}</span>
+            <span key={i} className={`key-change${i === activeKeyChange ? ' active' : ''}`}>{relativeShift(k.transpose)}</span>
           ))}
       </div> : <div className="info-side" />}
       <div className="controls">
