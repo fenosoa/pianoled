@@ -238,6 +238,21 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     else video.pause();
   };
 
+  // Commandes de transport distantes (Stream Deck) : play/pause, recommencer, chanson suivante / précédente
+  const transportRef = useRef({});
+  transportRef.current = {
+    'play-pause': togglePlay,
+    restart: () => {
+      const video = videoRef.current;
+      if (!video) return;
+      video.currentTime = 0;
+      setCurrentTime(0);
+      video.play().catch(() => {});
+    },
+    next: onNext,
+    previous: onPrevious,
+  };
+
   // --- MOTEUR DE SYNCHRONISATION ---
   useEffect(() => {
     const video = videoRef.current;
@@ -266,8 +281,12 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     const sync = createSyncMaster();
     syncRef.current = sync;
     // Commandes distantes (Stream Deck via /control/mixer/<n>) : mêmes actions que les touches 1 à 0
-    sync.setCommandHandler(({ key }) => {
-      if (Object.hasOwn(MIXER_SHORTCUTS, key)) mixerActionRef.current?.(MIXER_SHORTCUTS[key]);
+    sync.setCommandHandler(({ key, action }) => {
+      if (key !== undefined) {
+        if (Object.hasOwn(MIXER_SHORTCUTS, key)) mixerActionRef.current?.(MIXER_SHORTCUTS[key]);
+      } else {
+        transportRef.current[action]?.();
+      }
     });
     const push = () => sync.sendState(video);
     const events = ['play', 'pause', 'seeked', 'ratechange', 'ended', 'loadedmetadata'];

@@ -97,8 +97,9 @@ const stemsPlugin = {
 // pour être rejoués à un suiveur qui arrive en cours de route.
 // Commandes (Stream Deck, action « API Request ») : GET ou POST /control/mixer/<0-9> → relayées au maître
 // ({type:'command', key}), qui exécute le raccourci de même numéro (voir MIXER_SHORTCUTS dans le lecteur).
+// Transport : GET ou POST /control/play-pause | restart | next | previous → {type:'command', action}.
 const SYNC_PATH = '/sync';
-const CONTROL_RE = /^\/control\/mixer\/([0-9])\/?$/;
+const CONTROL_RE = /^\/control\/(?:mixer\/(?<key>[0-9])|(?<action>play-pause|restart|next|previous))\/?$/;
 const syncPlugin = {
   name: 'sync-hub',
   configureServer(server) {
@@ -120,7 +121,7 @@ function attachSyncHub({ httpServer, middlewares }) {
     const match = CONTROL_RE.exec(req.url.split('?')[0]);
     if (!match || (req.method !== 'GET' && req.method !== 'POST')) return next();
     const ok = master?.readyState === 1;
-    if (ok) master.send(JSON.stringify({ type: 'command', key: match[1] }));
+    if (ok) master.send(JSON.stringify({ type: 'command', ...match.groups }));
     res.statusCode = ok ? 200 : 503; // 503 : aucun lecteur connecté
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ ok }));
