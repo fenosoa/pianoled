@@ -12,7 +12,7 @@ const DEFAULT_VIDEO = {
 };
 
 const KEY_TINTS = 3; // nombre de teintes (kc-0…kc-2 dans styles.css)
-const KEY_CHANGE_LEAD = 2; // s d'avance pour allumer la case du changement de tonalité
+const KEY_CHANGE_LEAD = 10; // s d'avance pour allumer la case du changement de tonalité (à droite de capo) ; le fond des accords suit le temps réel
 const REWIND_SECONDS = 3; // touche ← : retour en arrière
 const VOLUME_STEP = 0.2; // raccourcis volume : ±20 % (borné à 0–100 %, limite de HTMLMediaElement.volume)
 const PERFORMANCE_MUTE = ['guitar', 'piano']; // « je joue » : on coupe les instruments que l'on joue soi-même
@@ -153,8 +153,8 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
   // Valeur affichée = écart relatif au TU de base (TU 9, timelineKey 7 → 2) : le nombre d'appuis ↑/↓ pour ajuster le transpose en direct
   const baseTU = metaInfo?.transposeUp ?? (metaInfo?.transposeDown != null ? (metaInfo.transposeDown + 12) % 12 : null);
   const relativeShift = (transpose) => (baseTU == null ? transpose : baseTU - (((transpose % 12) + 12) % 12));
-  const keyChangeAt = (t) => keyChanges.reduce((acc, k, i) => (t >= k.time - KEY_CHANGE_LEAD ? i : acc), -1);
-  const activeKeyChange = keyChangeAt(currentTime);
+  const keyChangeAt = (t, lead = 0) => keyChanges.reduce((acc, k, i) => (t >= k.time - lead ? i : acc), -1);
+  const activeKeyChange = keyChangeAt(currentTime, KEY_CHANGE_LEAD);
   // Teinte du fond des accords selon le tronçon de tonalité (jamais jaune : réservé à l'accord à jouer)
   const keyTint = (start) => {
     const i = keyChangeAt(start);
