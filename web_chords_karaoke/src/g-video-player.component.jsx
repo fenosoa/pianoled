@@ -5,6 +5,7 @@ import { createSyncMaster } from './sync-master';
 
 // --- CONFIGURATION ---
 const LOOKAHEAD_OFFSET = 0.25; // 250ms d'avance pour l'anticipation
+const WORD_LEAD = 0.2; // 200ms : un mot passe en coloré un peu avant la voix, pour le confort du chanteur
 
 const DEFAULT_VIDEO = {
   hlsUrl: 'https://customer-xt0jrjpvyjrllivt.cloudflarestream.com/5c612fa3d642cb50d7d09def5b3fe61b/manifest/video.m3u8',
@@ -444,7 +445,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
       <div className="lyrics-bar">
         <div className="lyrics-line">
           {line?.words.map((w, i) => (
-            <span key={i} className={currentTime >= w.start ? 'sung' : ''}>{w.t} </span>
+            <span key={i} className={currentTime + WORD_LEAD >= w.start ? 'sung' : ''}>{w.t} </span>
           ))}
         </div>
         <div className="lyrics-line next">{next?.words.map((w) => w.t).join(' ')}</div>

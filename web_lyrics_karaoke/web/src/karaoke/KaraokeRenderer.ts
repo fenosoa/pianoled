@@ -6,7 +6,7 @@
  *   const stop = runRenderLoop(r, clock);   // boucle requestAnimationFrame (voir loop.ts)
  */
 import './karaoke.css';
-import { computeState, DEFAULT_CORE, flatten, wordProgress, type CoreOptions, type DisplayState, type FlatLine } from './core';
+import { computeState, DEFAULT_CORE, flatten, WORD_LEAD, wordProgress, type CoreOptions, type DisplayState, type FlatLine } from './core';
 import { DEFAULT_THEME, mergeTheme, type Theme } from './themes';
 import type { LyricsJson, SectionType } from './types';
 
@@ -237,7 +237,7 @@ export class KaraokeRenderer {
   private paint(le: LineEl, t: number): void {
     const line = this.lines[le.idx];
     for (let i = 0; i < line.words.length; i++) {
-      const p = wordProgress(line.words[i], t);
+      const p = wordProgress(line.words[i], t + WORD_LEAD);
       if (Math.abs(p - le.last[i]) < 0.002 && le.last[i] !== -1) continue;
       le.last[i] = p;
       le.fills[i].style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(1)}% 0 0)`;

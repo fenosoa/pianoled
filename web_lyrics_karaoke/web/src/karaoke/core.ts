@@ -28,7 +28,10 @@ export interface CoreOptions {
   lead: number;
 }
 
-export const DEFAULT_CORE: CoreOptions = { gapMin: 4, hold: 1, countdown: 3, lead: 0.2 };
+/** Les mots se remplissent WORD_LEAD s avant la voix (confort du chanteur) ; la ligne s'affiche encore plus tôt. */
+export const WORD_LEAD = 0.3;
+
+export const DEFAULT_CORE: CoreOptions = { gapMin: 4, hold: 1, countdown: 3, lead: 0.4 };
 
 /**
  * L'aligneur fait finir chaque mot au début du suivant : les silences sont comptés dans le mot.
