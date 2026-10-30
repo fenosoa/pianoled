@@ -1,6 +1,6 @@
 import Hls from 'hls.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { capoFor, simplifyChord } from './chords-helper';
+import { simplifyChord } from './chords-helper';
 import { createSyncMaster } from './sync-master';
 
 // --- CONFIGURATION ---
@@ -12,7 +12,7 @@ const DEFAULT_VIDEO = {
 };
 
 const KEY_TINTS = 3; // nombre de teintes (kc-0…kc-2 dans styles.css)
-const KEY_CHANGE_LEAD = 10; // s d'avance pour allumer la case du changement de tonalité (à droite de capo) ; le fond des accords suit le temps réel
+const KEY_CHANGE_LEAD = 10; // s d'avance pour allumer la case du changement de tonalité (à droite de TD) ; le fond des accords suit le temps réel
 const REWIND_SECONDS = 3; // touche ← : retour en arrière
 const VOLUME_STEP = 0.2; // raccourcis volume : ±20 % (borné à 0–100 %, limite de HTMLMediaElement.volume)
 const PERFORMANCE_MUTE = ['guitar', 'piano']; // « je joue » : on coupe les instruments que l'on joue soi-même
@@ -137,11 +137,6 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
       originalKey: timelineData.original_key ? formatKey(timelineData.original_key) : null,
       transposeUp: timelineData.transpose_up,
       transposeDown: timelineData.transpose_down,
-      capo: timelineData.original_key
-        ? capoFor(timelineData.original_key, timelineData.key_signature)
-        : timelineData.transpose_down != null
-          ? (12 - (timelineData.transpose_down % 12)) % 12 // sans clé d'origine : TD -1 => capo 1
-          : null,
     };
   }, [timelineData]);
 
@@ -497,8 +492,6 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
             {metaInfo.transposeUp != null && `TU : ${metaInfo.transposeUp}`}
             {metaInfo.transposeUp != null && metaInfo.transposeDown != null && '  '}
             {metaInfo.transposeDown != null && `TD : ${metaInfo.transposeDown}`}
-            {metaInfo.capo != null && '  '}
-            {metaInfo.capo != null && `Capo : ${metaInfo.capo}`}
           </span>
           {keyChanges.map((k, i) => (
             <span key={i} className={`key-change${i === activeKeyChange ? ' active' : ''}`}>{relativeShift(k.transpose)}</span>

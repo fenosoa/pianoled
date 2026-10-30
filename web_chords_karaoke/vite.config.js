@@ -71,6 +71,7 @@ const listSongs = () => {
 
 const serveStems = (req, res, next) => {
   if (!req.url.startsWith(STEMS_PREFIX)) return next();
+  res.setHeader('Access-Control-Allow-Origin', '*'); // lecture seule par les clients d'autres ports (web_guitar_karaoke)
   try {
     const rel = decodeURIComponent(req.url.slice(STEMS_PREFIX.length).split('?')[0]);
     if (rel === 'index.json') {
