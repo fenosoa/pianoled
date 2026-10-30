@@ -11,6 +11,8 @@ const DEFAULT_VIDEO = {
   posterUrl: 'https://customer-xt0jrjpvyjrllivt.cloudflarestream.com/5c612fa3d642cb50d7d09def5b3fe61b/thumbnails/thumbnail.jpg',
 };
 
+const KEY_TINTS = 3; // nombre de teintes (kc-0…kc-2 dans styles.css)
+const KEY_CHANGE_LEAD = 2; // s d'avance pour allumer la case du changement de tonalité
 const REWIND_SECONDS = 3; // touche ← : retour en arrière
 const VOLUME_STEP = 0.2; // raccourcis volume : ±20 % (borné à 0–100 %, limite de HTMLMediaElement.volume)
 const PERFORMANCE_MUTE = ['guitar', 'piano']; // « je joue » : on coupe les instruments que l'on joue soi-même
@@ -142,6 +144,19 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
           : null,
     };
   }, [timelineData]);
+
+  // Changements de tonalité : une case par changement, allumée 2 s avant qu'il survienne
+  const keyChanges = useMemo(
+    () => (timelineData?.timeline_key ?? []).filter((k) => Number.isFinite(k.time) && k.transpose != null),
+    [timelineData]
+  );
+  const keyChangeAt = (t) => keyChanges.reduce((acc, k, i) => (t >= k.time - KEY_CHANGE_LEAD ? i : acc), -1);
+  const activeKeyChange = keyChangeAt(currentTime);
+  // Teinte du fond des accords selon le tronçon de tonalité (jamais jaune : réservé à l'accord à jouer)
+  const keyTint = (start) => {
+    const i = keyChangeAt(start);
+    return i < 0 ? '' : ` kc-${i % KEY_TINTS}`;
+  };
 
   const uniqueChords = useMemo(
     () => Array.from(new Set(parsedTimeline.map((i) => i.chord).filter(Boolean))),
@@ -409,7 +424,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
             <div key={`${rowIndex}-${colIndex}`} className="cell-wrapper">
               {isStartOfMeasure && <div className="measure-separator" style={{ opacity: rowOpacity }} />}
               <div
-                className={`chord-box ${isCurrent ? 'active' : 'future'}`}
+                className={`chord-box ${isCurrent ? 'active' : 'future'}${keyTint(item.start)}`}
                 style={{ opacity: isCurrent ? 1 : rowOpacity }}
                 onClick={() => seekToItem(item, item.id)}
               >
@@ -482,6 +497,9 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
             {metaInfo.capo != null && '  '}
             {metaInfo.capo != null && `Capo : ${metaInfo.capo}`}
           </span>
+          {keyChanges.map((k, i) => (
+            <span key={i} className={`key-change${i === activeKeyChange ? ' active' : ''}`}>{k.transpose}</span>
+          ))}
       </div> : <div className="info-side" />}
       <div className="controls">
         {onPrevious && (
@@ -545,7 +563,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
                       <div
                         key={cell.id}
                         ref={isActive ? activeCellRef : null}
-                        className={`full-cell ${isActive ? 'active' : ''}`}
+                        className={`full-cell ${isActive ? 'active' : ''}${keyTint(cell.start)}`}
                         onClick={() => seekToItem(cell, cell.index)}
                       >
                         {cell.showChord ? simplifyChord(cell.chord) : ''}

@@ -20,6 +20,26 @@ const readJson = (file) => {
   }
 };
 
+// Changements de tonalité (timelineKey) d'un .chords.json ; relu seulement si le fichier a changé (listSongs est appelé toutes les 2 s)
+const keyChangesCache = new Map();
+const readKeyChanges = (file) => {
+  const { mtimeMs } = fs.statSync(file);
+  const hit = keyChangesCache.get(file);
+  if (hit?.mtimeMs === mtimeMs) return hit.changes;
+  const find = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (Array.isArray(node.timelineKey)) return node.timelineKey;
+    for (const child of Object.values(node)) {
+      const found = find(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  const changes = (find(readJson(file)) ?? []).map((k) => ({ time: k.time, transpose: k.transpose }));
+  keyChangesCache.set(file, { mtimeMs, changes });
+  return changes;
+};
+
 // Liste les chansons à chaque appel (on peut en ajouter sans redémarrer)
 const listSongs = () => {
   const songs = [];
@@ -42,6 +62,7 @@ const listSongs = () => {
       title: meta?.title || entry.name,
       json: url(chords),
       lyrics: lyrics ? url(lyrics) : null,
+      keyChanges: readKeyChanges(path.join(dir, chords)),
       tracks: tracks.map((t) => ({ name: t, url: url(`${t}.flac`) })),
     });
   }

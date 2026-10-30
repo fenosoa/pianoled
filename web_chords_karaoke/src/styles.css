@@ -44,6 +44,12 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
 .top-row { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 clamp(6px, 2vw, 24px); }
 .info-side { flex: 1 1 0; min-width: 0; font-size: 42px; font-weight: 700; color: #666; white-space: pre; line-height: 1.1; }
 .info-side.right { text-align: right; }
+.info-side.left { display: flex; align-items: center; gap: 12px; }
+.key-change {
+  min-width: 1.6em; padding: 0 8px; text-align: center; border: 2px solid #999; border-radius: 6px;
+  color: #666; background: transparent;
+}
+.key-change.active { background: #FFD700; border-color: #FFD700; color: #000; }
 .top-row .controls { flex: 0 0 auto; }
 
 /* PAROLES : taille constante, au-dessus des accords */
@@ -166,3 +172,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
 .mixer-button:active { transform: scale(0.96); }
 .mixer-button.muted { background: transparent; border-color: #555; color: #888; text-decoration: line-through; }
 .mixer-gain { font-size: 0.7em; opacity: 0.8; }
+
+/* Fond des accords après un changement de tonalité (l'accord actif reste jaune) */
+.full-cell.kc-0:not(.active), .chord-box.future.kc-0 { background: #cfe6ff; }
+.full-cell.kc-1:not(.active), .chord-box.future.kc-1 { background: #d6f2d6; }
+.full-cell.kc-2:not(.active), .chord-box.future.kc-2 { background: #f3d9f5; }

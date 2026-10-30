@@ -42,7 +42,7 @@ export function createPlaylistStore({ file, listSongs }) {
     setCurrent(name) {
       current = typeof name === 'string' ? name : null;
     },
-    state: () => ({ library: listSongs().map(({ name, title }) => ({ name, title })), queue: queue(), current }),
+    state: () => ({ library: listSongs().map(({ name, title, keyChanges }) => ({ name, title, keyChanges })), queue: queue(), current }),
     // Retourne true si la file a changé (le hub la renvoie alors au lecteur)
     apply(action, body) {
       const name = body?.name;

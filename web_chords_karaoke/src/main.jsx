@@ -33,6 +33,7 @@ const normalizeTimeline = (data) => {
     transpose_up: info.transposeUp,
     transpose_down: info.transposeDown,
     timeline: holder.chords,
+    timeline_key: holder.timelineKey,
   };
 };
 

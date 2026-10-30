@@ -50,10 +50,18 @@ function App() {
   };
 
   const titles = React.useMemo(() => new Map(state.library.map((s) => [s.name, s.title])), [state.library]);
+  const [onlyKeyChanges, setOnlyKeyChanges] = React.useState(false);
   const results = React.useMemo(() => {
     const q = norm(search.trim());
-    return state.library.filter((s) => !q || norm(s.title).includes(q) || norm(s.name).includes(q));
-  }, [state.library, search]);
+    return state.library.filter(
+      (s) => (!onlyKeyChanges || s.keyChanges?.length) && (!q || norm(s.title).includes(q) || norm(s.name).includes(q))
+    );
+  }, [state.library, search, onlyKeyChanges]);
+  const keyBadge = (s) =>
+    s?.keyChanges?.length > 0 && (
+      <span className="pl-key" title="Changement(s) de tonalité">♯ {s.keyChanges.map((k) => k.transpose).join(' · ')}</span>
+    );
+  const songs = React.useMemo(() => new Map(state.library.map((s) => [s.name, s])), [state.library]);
 
   const setQueue = (queue) => call('queue', { queue }, 'PUT');
   const move = (from, to) => {
@@ -87,6 +95,7 @@ function App() {
             >
               <span className="pl-grip" aria-hidden>⠿</span>
               <span className="pl-title">{titles.get(name) ?? name}</span>
+              {keyBadge(songs.get(name))}
               <button onClick={() => call('play', { name })} title="Lire maintenant">▶</button>
               <button onClick={() => move(i, i - 1)} disabled={i === 0} title="Monter">▲</button>
               <button onClick={() => move(i, i + 1)} disabled={i === state.queue.length - 1} title="Descendre">▼</button>
@@ -106,10 +115,15 @@ function App() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <label className="pl-filter">
+          <input type="checkbox" checked={onlyKeyChanges} onChange={(e) => setOnlyKeyChanges(e.target.checked)} />
+          Changement de tonalité uniquement
+        </label>
         <ul className="pl-list">
           {results.map((s) => (
             <li key={s.name} className={`pl-item ${s.name === state.current ? 'current' : ''}`}>
               <span className="pl-title">{s.title}</span>
+              {keyBadge(s)}
               <button onClick={() => call('play', { name: s.name })} title="Lire maintenant">▶ Lire</button>
               <button onClick={() => call('play-next', { name: s.name })} title="Juste après la chanson en cours">⏭ Ensuite</button>
               <button onClick={() => call('add', { name: s.name })} title="À la fin de la file">＋ À la suite</button>
