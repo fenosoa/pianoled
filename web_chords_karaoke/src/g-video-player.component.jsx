@@ -152,7 +152,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
   );
   // Valeur affichée = écart relatif au TU de base (TU 9, timelineKey 7 → 2) : le nombre d'appuis ↑/↓ pour ajuster le transpose en direct
   const baseTU = metaInfo?.transposeUp ?? (metaInfo?.transposeDown != null ? (metaInfo.transposeDown + 12) % 12 : null);
-  const relativeShift = (transpose) => (baseTU == null ? transpose : baseTU - (((transpose % 12) + 12) % 12));
+  const relativeShift = (transpose) => (baseTU == null ? transpose : ((baseTU - transpose + 17) % 12 + 12) % 12 - 5); // ramené dans [-5, 6]
   const keyChangeAt = (t, lead = 0) => keyChanges.reduce((acc, k, i) => (t >= k.time - lead ? i : acc), -1);
   const activeKeyChange = keyChangeAt(currentTime, KEY_CHANGE_LEAD);
   // Teinte du fond des accords selon le tronçon de tonalité (jamais jaune : réservé à l'accord à jouer)
