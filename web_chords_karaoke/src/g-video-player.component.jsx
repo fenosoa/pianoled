@@ -12,6 +12,7 @@ const DEFAULT_VIDEO = {
 
 const REWIND_SECONDS = 3; // touche ← : retour en arrière
 const AUDIO_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|flac)(\?|#|$)/i;
+const DRIFT_MAX = 0.06; // écart toléré entre pistes (s)
 const HLS_EXT = /\.m3u8(\?|#|$)/i;
 
 // --- HELPERS ---
@@ -64,7 +65,17 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const { hlsUrl, posterUrl } = videoMeta?.hlsUrl ? videoMeta : DEFAULT_VIDEO;
+  // Multipiste : la 1re piste est portée par le <video> (maître), les autres par des <audio> synchronisés
+  const tracks = videoMeta?.tracks;
+  const trackKey = tracks?.map((t) => t.url).join('|');
+  const [mutedTracks, setMutedTracks] = useState([]);
+  const slavesRef = useRef([]);
+
+  const { hlsUrl, posterUrl } = tracks?.length
+    ? { hlsUrl: tracks[0].url, posterUrl: videoMeta.posterUrl }
+    : videoMeta?.hlsUrl
+      ? videoMeta
+      : DEFAULT_VIDEO;
 
   // Un fichier audio (mp3...) n'a pas d'image : on affiche toujours la grille plein écran
   const isAudio = AUDIO_EXT.test(hlsUrl);
@@ -133,6 +144,53 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     if (wasPlaying) video.play().catch(() => {});
     return () => hls?.destroy();
   }, [hlsUrl]);
+
+  // --- PISTES SECONDAIRES : suivent play/pause/seek du maître, avec rattrapage de dérive ---
+  useEffect(() => {
+    const master = videoRef.current;
+    const slaves = (tracks ?? []).slice(1).map((t) => {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = t.url;
+      a.dataset.track = t.name;
+      return a;
+    });
+    slavesRef.current = slaves;
+    if (!master || slaves.length === 0) return;
+
+    const align = () => slaves.forEach((a) => { a.currentTime = master.currentTime; });
+    const play = () => { align(); slaves.forEach((a) => a.play().catch(() => {})); };
+    const pause = () => slaves.forEach((a) => a.pause());
+    const onPlaying = () => { if (slaves[0].paused) play(); };
+    const events = { play, pause, seeked: align, waiting: pause, playing: onPlaying, ratechange: () => slaves.forEach((a) => { a.playbackRate = master.playbackRate; }) };
+    Object.entries(events).forEach(([e, fn]) => master.addEventListener(e, fn));
+    if (!master.paused) play();
+
+    const drift = setInterval(() => {
+      if (master.paused || master.seeking) return;
+      slaves.forEach((a) => {
+        if (Math.abs(a.currentTime - master.currentTime) > DRIFT_MAX) a.currentTime = master.currentTime;
+      });
+    }, 500);
+
+    return () => {
+      clearInterval(drift);
+      Object.entries(events).forEach(([e, fn]) => master.removeEventListener(e, fn));
+      slaves.forEach((a) => { a.pause(); a.removeAttribute('src'); a.load(); });
+      slavesRef.current = [];
+    };
+  }, [trackKey]);
+
+  // Mute / solo par piste
+  useEffect(() => {
+    const names = (tracks ?? []).map((t) => t.name);
+    const vol = (name) => (mutedTracks.includes(name) ? 0 : 1);
+    if (videoRef.current && names.length) videoRef.current.volume = vol(names[0]);
+    slavesRef.current.forEach((a) => { a.volume = vol(a.dataset.track); });
+  }, [trackKey, mutedTracks]);
+
+  const toggleTrack = (name) =>
+    setMutedTracks((m) => (m.includes(name) ? m.filter((n) => n !== name) : [...m, name]));
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -345,6 +403,21 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
           </span>
       </div> : <div className="info-side" />}
       </div>
+
+      {tracks?.length > 1 && (
+        <div className="mixer">
+          {tracks.map((t) => (
+            <button
+              key={t.name}
+              className={`mixer-button ${mutedTracks.includes(t.name) ? 'muted' : ''}`}
+              onClick={() => toggleTrack(t.name)}
+              title={mutedTracks.includes(t.name) ? 'Activer la piste' : 'Couper la piste'}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 3. PAROLES (taille fixe, au-dessus des accords) */}
       {renderLyrics()}

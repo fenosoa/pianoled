@@ -149,3 +149,11 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
   }
   .grid-row { max-height: 18vh; }
 }
+
+/* Mixer : une pastille par piste (clic = couper / réactiver) */
+.mixer { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 6px 0; }
+.mixer-button {
+  padding: 4px 12px; border-radius: 999px; border: 1px solid #4a8; background: #1d3a2c;
+  color: #fff; font-size: 0.8rem; cursor: pointer;
+}
+.mixer-button.muted { background: transparent; border-color: #555; color: #888; text-decoration: line-through; }
