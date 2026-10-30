@@ -8,3 +8,5 @@ config/*.bak
 stems_generator_karaoke/backup
 stems_generator_karaoke/stems_gen/models
 .venv/
+# originaux lourds des vidéos de fond (versions web dans web_lyrics_karaoke/web/public/fx)
+web_lyrics_karaoke/web/fx-source/

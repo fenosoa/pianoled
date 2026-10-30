@@ -14,21 +14,30 @@ export interface Theme {
   /** contour du texte (lisibilité sur tout fond) */
   outline: string;
   fontFamily: string;
+  /** vidéo en boucle (fond noir, mélangée en « screen ») par type de section ; absente = dégradé seul */
+  fx: Partial<Record<SectionType, string>>;
 }
 
 export const DEFAULT_THEME: Theme = {
   palettes: {
-    couplet: { bg: ['#1e3a8a', '#6d28d9', '#0891b2'], fill: '#fde047' },
-    refrain: { bg: ['#9d174d', '#ea580c', '#f59e0b'], fill: '#22d3ee' },
-    pont: { bg: ['#064e3b', '#0f766e', '#65a30d'], fill: '#f9a8d4' },
-    intro: { bg: ['#111827', '#312e81', '#0e7490'], fill: '#a7f3d0' },
-    outro: { bg: ['#111827', '#4c1d95', '#be185d'], fill: '#a7f3d0' },
+    couplet: { bg: ['#3b1d0a', '#7c2d12', '#b45309'], fill: '#40E6D0' },
+    refrain: { bg: ['#5c1a0b', '#c2410c', '#f59e0b'], fill: '#40E6D0' },
+    pont: { bg: ['#3a1a05', '#92400e', '#ca8a04'], fill: '#40E6D0' },
+    intro: { bg: ['#1c0f05', '#4a2511', '#8a5a1c'], fill: '#40E6D0' },
+    outro: { bg: ['#1a0c06', '#5c1f12', '#a16207'], fill: '#40E6D0' },
   },
-  base: '#ffffff',
-  outline: '#1a1030',
+  base: '#FFFDF7',
+  outline: '#142536',
   fontFamily: '"Baloo 2", "Fredoka", "Trebuchet MS", system-ui, sans-serif',
+  fx: {
+    couplet: '/fx/gold-shimmer.mp4',
+    refrain: '/fx/gold-glitter.mp4',
+    pont: '/fx/gold-falling.mp4',
+    intro: '/fx/gold-dust.mp4',
+    outro: '/fx/gold-dust.mp4',
+  },
 };
 
 export function mergeTheme(base: Theme, over: Partial<Theme>): Theme {
-  return { ...base, ...over, palettes: { ...base.palettes, ...(over.palettes ?? {}) } };
+  return { ...base, ...over, palettes: { ...base.palettes, ...(over.palettes ?? {}) }, fx: { ...base.fx, ...(over.fx ?? {}) } };
 }

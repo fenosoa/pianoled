@@ -12,6 +12,22 @@ const DEFAULT_VIDEO = {
 };
 
 const REWIND_SECONDS = 3; // touche ← : retour en arrière
+const VOLUME_STEP = 0.2; // raccourcis volume : ±20 % (borné à 0–100 %, limite de HTMLMediaElement.volume)
+const PERFORMANCE_MUTE = ['guitar', 'piano']; // « je joue » : on coupe les instruments que l'on joue soi-même
+const KARAOKE_MUTE = ['vocals', ...PERFORMANCE_MUTE]; // karaoké : reste bass, drums, other
+// Raccourcis Stream Deck (touches 1 à 0, clavier principal ou pavé numérique) → action sur le mixeur
+const MIXER_SHORTCUTS = {
+  1: { type: 'set', muted: KARAOKE_MUTE },
+  2: { type: 'toggle', names: ['vocals'] },
+  3: { type: 'toggle', names: PERFORMANCE_MUTE },
+  4: { type: 'volume', name: 'vocals', delta: VOLUME_STEP },
+  5: { type: 'volume', name: 'vocals', delta: -VOLUME_STEP },
+  6: { type: 'volume', name: 'piano', delta: VOLUME_STEP },
+  7: { type: 'volume', name: 'piano', delta: -VOLUME_STEP },
+  8: { type: 'volume', name: 'guitar', delta: VOLUME_STEP },
+  9: { type: 'volume', name: 'guitar', delta: -VOLUME_STEP },
+  0: { type: 'set', muted: [] },
+};
 const AUDIO_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|flac)(\?|#|$)/i;
 const DRIFT_MAX = 0.06; // écart toléré entre pistes (s)
 const HLS_EXT = /\.m3u8(\?|#|$)/i;
@@ -70,6 +86,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
   const tracks = videoMeta?.tracks;
   const trackKey = tracks?.map((t) => t.url).join('|');
   const [mutedTracks, setMutedTracks] = useState([]);
+  const [gains, setGains] = useState({}); // volume par piste (0–1, défaut 1)
   const slavesRef = useRef([]);
 
   const { hlsUrl, posterUrl } = tracks?.length
@@ -185,13 +202,34 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
   // Mute / solo par piste
   useEffect(() => {
     const names = (tracks ?? []).map((t) => t.name);
-    const vol = (name) => (mutedTracks.includes(name) ? 0 : 1);
+    const vol = (name) => (mutedTracks.includes(name) ? 0 : gains[name] ?? 1);
     if (videoRef.current && names.length) videoRef.current.volume = vol(names[0]);
     slavesRef.current.forEach((a) => { a.volume = vol(a.dataset.track); });
-  }, [trackKey, mutedTracks]);
+  }, [trackKey, mutedTracks, gains]);
 
   const toggleTrack = (name) =>
     setMutedTracks((m) => (m.includes(name) ? m.filter((n) => n !== name) : [...m, name]));
+
+  // Raccourcis du mixeur (Stream Deck) ; les pistes absentes de la chanson sont ignorées
+  const mixerActionRef = useRef(null);
+  mixerActionRef.current = (action) => {
+    const names = (tracks ?? []).map((t) => t.name);
+    if (names.length === 0) return;
+    if (action.type === 'set') {
+      setMutedTracks(action.muted.filter((n) => names.includes(n)));
+    } else if (action.type === 'toggle') {
+      const targets = action.names.filter((n) => names.includes(n));
+      // Tout est coupé → on réactive ; sinon on coupe tout
+      setMutedTracks((m) =>
+        targets.every((n) => m.includes(n)) ? m.filter((n) => !targets.includes(n)) : [...new Set([...m, ...targets])]
+      );
+    } else if (action.type === 'volume' && names.includes(action.name)) {
+      setGains((g) => {
+        const next = Math.round(((g[action.name] ?? 1) + action.delta) * 10) / 10;
+        return { ...g, [action.name]: Math.min(1, Math.max(0, next)) };
+      });
+    }
+  };
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -227,6 +265,10 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     if (!video || new URLSearchParams(location.search).get('sync') === 'off') return;
     const sync = createSyncMaster();
     syncRef.current = sync;
+    // Commandes distantes (Stream Deck via /control/mixer/<n>) : mêmes actions que les touches 1 à 0
+    sync.setCommandHandler(({ key }) => {
+      if (Object.hasOwn(MIXER_SHORTCUTS, key)) mixerActionRef.current?.(MIXER_SHORTCUTS[key]);
+    });
     const push = () => sync.sendState(video);
     const events = ['play', 'pause', 'seeked', 'ratechange', 'ended', 'loadedmetadata'];
     events.forEach((e) => video.addEventListener(e, push));
@@ -244,7 +286,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     if (videoRef.current) syncRef.current?.sendState(videoRef.current);
   }, [lyricsData, songTitle]);
 
-  // --- CLAVIER (réel ou virtuel/injecté) : ← = -3 s, Espace = play/pause ---
+  // --- CLAVIER (réel ou virtuel/injecté) : ← = -3 s, Espace = play/pause, 1–0 = mixeur (voir MIXER_SHORTCUTS) ---
   useEffect(() => {
     const isSpace = (e) => e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
     const isLeft = (e) => e.key === 'ArrowLeft' || e.code === 'ArrowLeft';
@@ -257,6 +299,9 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
         const t = Math.max(0, video.currentTime - REWIND_SECONDS);
         video.currentTime = t;
         setCurrentTime(t);
+      } else if (/^(Digit|Numpad)\d$/.test(e.code) && MIXER_SHORTCUTS[e.code.slice(-1)]) {
+        e.preventDefault();
+        if (!e.repeat) mixerActionRef.current?.(MIXER_SHORTCUTS[e.code.slice(-1)]);
       } else if (isSpace(e)) {
         e.preventDefault(); // évite aussi le défilement de la page / le clic sur un bouton focalisé
         if (e.repeat) return;
@@ -440,6 +485,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
               title={mutedTracks.includes(t.name) ? 'Activer la piste' : 'Couper la piste'}
             >
               {t.name}
+              {(gains[t.name] ?? 1) < 1 && <small className="mixer-gain"> {Math.round((gains[t.name] ?? 1) * 100)}%</small>}
             </button>
           ))}
         </div>

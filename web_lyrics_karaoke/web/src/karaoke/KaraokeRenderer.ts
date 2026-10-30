@@ -28,6 +28,8 @@ export class KaraokeRenderer {
   private idle!: HTMLElement;
   private idleTitle!: HTMLElement;
   private idleArtist!: HTMLElement;
+  private fxBox!: HTMLElement;
+  private fxVideos = new Map<SectionType, HTMLVideoElement>();
 
   private lines: FlatLine[] = [];
   private offset = 0;
@@ -44,12 +46,13 @@ export class KaraokeRenderer {
     this.root = document.createElement('div');
     this.root.className = 'kr-stage';
     this.root.innerHTML = `
-      <div class="kr-bg"></div><div class="kr-glow"></div>
+      <div class="kr-bg"></div><div class="kr-fx"></div><div class="kr-glow"></div>
       <div class="kr-idle"><div class="kr-eq"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="kr-title"></div><div class="kr-artist"></div></div>
       <div class="kr-dots"><i></i><i></i><i></i></div>
       <div class="kr-lines"></div>`;
     element.appendChild(this.root);
+    this.fxBox = this.root.querySelector('.kr-fx')!;
     this.linesBox = this.root.querySelector('.kr-lines')!;
     this.dots = this.root.querySelector('.kr-dots')!;
     this.idle = this.root.querySelector('.kr-idle')!;
@@ -124,6 +127,30 @@ export class KaraokeRenderer {
     if (type === this.shownType) return;
     this.shownType = type;
     this.root.dataset.type = type;
+    this.showFx(type);
+  }
+
+  /** Une vidéo par type de section ; seule la vidéo visible est décodée (les autres sont en pause). */
+  private showFx(type: SectionType): void {
+    for (const [t, v] of this.fxVideos) {
+      if (t === type) continue;
+      v.classList.remove('on');
+      window.setTimeout(() => { if (!v.classList.contains('on')) v.pause(); }, 1600); // après le fondu
+    }
+    const src = this.theme.fx[type];
+    if (!src) return;
+    let v = this.fxVideos.get(type);
+    if (!v) {
+      v = document.createElement('video');
+      v.src = src;
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('aria-hidden', 'true');
+      v.addEventListener('error', () => v!.remove()); // fichier absent : on garde le dégradé seul
+      this.fxBox.appendChild(v);
+      this.fxVideos.set(type, v);
+    }
+    v.classList.add('on');
+    v.play().catch(() => {});
   }
 
   private setIdle(on: boolean): void {

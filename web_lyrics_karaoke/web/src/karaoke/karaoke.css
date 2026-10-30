@@ -21,10 +21,17 @@
   position: absolute; inset: -20%;
   background: linear-gradient(120deg, var(--c1), var(--c2), var(--c3), var(--c1));
   background-size: 300% 300%;
-  animation: kr-drift 24s ease-in-out infinite, kr-hue 90s linear infinite;
+  animation: kr-drift 24s ease-in-out infinite;
 }
 @keyframes kr-drift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes kr-hue { to { filter: hue-rotate(360deg); } }
+
+/* Vidéos de fond en boucle : fond noir => « screen » ne garde que la lumière, fondu entre sections */
+.kr-fx { position: absolute; inset: 0; pointer-events: none; }
+.kr-fx video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  mix-blend-mode: screen; opacity: 0; transition: opacity 1.4s ease;
+}
+.kr-fx video.on { opacity: .95; }
 
 /* Pulsation lumineuse (refrain uniquement) */
 .kr-glow {
@@ -53,8 +60,8 @@
 /* Mot : couche de base + couche de remplissage rognée (clip-path piloté à chaque frame) */
 .kr-w { position: relative; display: inline-block; white-space: pre; }
 .kr-b, .kr-f {
-  -webkit-text-stroke: .09em var(--outline); paint-order: stroke fill;
-  text-shadow: 0 .06em .14em rgba(0,0,0,.45);
+  -webkit-text-stroke: .15em var(--outline); paint-order: stroke fill;
+  text-shadow: 0 .07em .1em rgba(20,37,54,.55);
 }
 .kr-b { color: var(--base); }
 .kr-f { position: absolute; left: 0; top: 0; color: var(--fill); clip-path: inset(0 100% 0 0); }
@@ -77,8 +84,8 @@
   opacity: 0; transition: opacity .8s; text-align: center; padding: 0 6vw;
 }
 .kr-idle.on { opacity: 1; }
-.kr-title { font-size: min(9vw, 13vh); -webkit-text-stroke: .08em var(--outline); paint-order: stroke fill; }
-.kr-artist { font-size: min(5vw, 7vh); opacity: .85; -webkit-text-stroke: .08em var(--outline); paint-order: stroke fill; }
+.kr-title { font-size: min(9vw, 13vh); -webkit-text-stroke: .14em var(--outline); paint-order: stroke fill; text-shadow: 0 .07em .1em rgba(20,37,54,.55); }
+.kr-artist { font-size: min(5vw, 7vh); opacity: .85; -webkit-text-stroke: .14em var(--outline); paint-order: stroke fill; text-shadow: 0 .07em .1em rgba(20,37,54,.55); }
 .kr-eq { display: flex; gap: 1.2vw; align-items: flex-end; height: 12vh; }
 .kr-eq i { width: 2vw; background: var(--fill); border-radius: 1vw; height: 100%; transform-origin: bottom; animation: kr-eq 1s ease-in-out infinite; }
 .kr-eq i:nth-child(2) { animation-delay: -.3s; } .kr-eq i:nth-child(3) { animation-delay: -.6s; }

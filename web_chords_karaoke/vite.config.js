@@ -95,23 +95,36 @@ const stemsPlugin = {
 // Protocole JSON : le client se déclare { type:'hello', role:'master'|'follower' } ; les messages du maître
 // ({type:'song'} paroles + titre, {type:'state'} playing/time/rate) sont relayés aux suiveurs et mémorisés
 // pour être rejoués à un suiveur qui arrive en cours de route.
+// Commandes (Stream Deck, action « API Request ») : GET ou POST /control/mixer/<0-9> → relayées au maître
+// ({type:'command', key}), qui exécute le raccourci de même numéro (voir MIXER_SHORTCUTS dans le lecteur).
 const SYNC_PATH = '/sync';
+const CONTROL_RE = /^\/control\/mixer\/([0-9])\/?$/;
 const syncPlugin = {
   name: 'sync-hub',
   configureServer(server) {
-    attachSyncHub(server.httpServer);
+    attachSyncHub(server);
   },
   configurePreviewServer(server) {
-    attachSyncHub(server.httpServer);
+    attachSyncHub(server);
   },
 };
 
-function attachSyncHub(httpServer) {
+function attachSyncHub({ httpServer, middlewares }) {
   if (!httpServer) return;
   const wss = new WebSocketServer({ noServer: true });
   const followers = new Set();
   let master = null;
   const last = { song: null, state: null };
+
+  middlewares.use((req, res, next) => {
+    const match = CONTROL_RE.exec(req.url.split('?')[0]);
+    if (!match || (req.method !== 'GET' && req.method !== 'POST')) return next();
+    const ok = master?.readyState === 1;
+    if (ok) master.send(JSON.stringify({ type: 'command', key: match[1] }));
+    res.statusCode = ok ? 200 : 503; // 503 : aucun lecteur connecté
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ ok }));
+  });
 
   httpServer.on('upgrade', (req, socket, head) => {
     if (req.url.split('?')[0] !== SYNC_PATH) return; // laisse le HMR de Vite tranquille

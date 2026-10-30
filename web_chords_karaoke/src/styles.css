@@ -165,3 +165,4 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; overf
 }
 .mixer-button:active { transform: scale(0.96); }
 .mixer-button.muted { background: transparent; border-color: #555; color: #888; text-decoration: line-through; }
+.mixer-gain { font-size: 0.7em; opacity: 0.8; }
