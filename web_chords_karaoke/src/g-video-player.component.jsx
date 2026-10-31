@@ -244,6 +244,7 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
         targets.every((n) => m.includes(n)) ? m.filter((n) => !targets.includes(n)) : [...new Set([...m, ...targets])]
       );
     } else if (action.type === 'volume' && names.includes(action.name)) {
+      setMutedTracks((m) => (m.includes(action.name) ? m.filter((n) => n !== action.name) : m)); // toucher au volume réactive la piste
       setGains((g) => {
         const next = Math.round(((g[action.name] ?? 1) + action.delta) * 10) / 10;
         return { ...g, [action.name]: Math.min(1, Math.max(0, next)) };
@@ -461,8 +462,8 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
           ref={videoRef}
           className="video"
           poster={posterUrl}
-          loop
           playsInline
+          onEnded={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; setPlaying(false); }}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
