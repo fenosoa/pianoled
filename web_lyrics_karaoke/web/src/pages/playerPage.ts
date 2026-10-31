@@ -40,7 +40,6 @@ export async function mountPlayerPage(host: HTMLElement, songId: string, params:
   const player = host.querySelector<HTMLElement>('.player')!;
   const renderer = new KaraokeRenderer();
   renderer.mount(player.querySelector('.stage-host')!);
-  renderer.setMeta({ title: song.title, artist: song.artist });
   renderer.load(song.lyrics);
 
   const playBtn = player.querySelector<HTMLButtonElement>('[data-a=play]')!;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { cleanLabel } from './label.js';
 import './playlist.css';
 
 // Page de gestion de la file de lecture (à ouvrir sur un autre écran que le lecteur d'accords).
@@ -94,7 +95,7 @@ function App() {
               onDragEnd={() => { busy.current = false; setDragName(null); setOverName(null); }}
             >
               <span className="pl-grip" aria-hidden>⠿</span>
-              <span className="pl-title">{titles.get(name) ?? name}</span>
+              <span className="pl-title">{cleanLabel(titles.get(name) ?? name)}</span>
               {keyBadge(songs.get(name))}
               <button onClick={() => call('play', { name })} title="Lire maintenant">▶</button>
               <button onClick={() => move(i, i - 1)} disabled={i === 0} title="Monter">▲</button>
@@ -122,7 +123,7 @@ function App() {
         <ul className="pl-list">
           {results.map((s) => (
             <li key={s.name} className={`pl-item ${s.name === state.current ? 'current' : ''}`}>
-              <span className="pl-title">{s.title}</span>
+              <span className="pl-title">{cleanLabel(s.title)}</span>
               {keyBadge(s)}
               <button onClick={() => call('play', { name: s.name })} title="Lire maintenant">▶ Lire</button>
               <button onClick={() => call('play-next', { name: s.name })} title="Juste après la chanson en cours">⏭ Ensuite</button>

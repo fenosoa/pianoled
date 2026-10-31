@@ -1,4 +1,5 @@
 import './style.css';
+import { cleanLabel } from './karaoke/label';
 import { mountPlayerPage } from './pages/playerPage';
 import { mountSyncPage } from './pages/syncPage';
 
@@ -28,7 +29,7 @@ async function mountHome(): Promise<void> {
   try {
     const songs: { id: string; title: string; artist: string; status: string }[] = await (await fetch('/api/songs')).json();
     ul.innerHTML = songs.length
-      ? songs.map((s) => `<li><a href="#/play/${s.id}">${s.title}${s.artist ? ' — ' + s.artist : ''}</a></li>`).join('')
+      ? songs.map((s) => `<li><a href="#/play/${s.id}">${cleanLabel(s.title)}${s.artist ? ' — ' + cleanLabel(s.artist) : ''}</a></li>`).join('')
       : '<li>Aucune chanson pour le moment.</li>';
   } catch {
     ul.innerHTML = '<li>API injoignable (le moteur Python tourne-t-il sur le port 8000 ?)</li>';

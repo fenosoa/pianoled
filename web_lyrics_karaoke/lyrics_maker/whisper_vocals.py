@@ -71,8 +71,11 @@ def main():
             segments, _ = model.transcribe(
                 str(vocals),
                 language=lang,
-                vad_filter=True,
+                vad_filter=False,  # le VAD coupe la voix isolée/traitée -> trous et hallucinations
                 condition_on_previous_text=False,
+                beam_size=5,
+                no_speech_threshold=0.9,
+                compression_ratio_threshold=3.0,
             )
             lines = [s.text.strip() for s in segments if s.text.strip()]
             out.write_text("\n".join(lines) + "\n", encoding="utf-8")

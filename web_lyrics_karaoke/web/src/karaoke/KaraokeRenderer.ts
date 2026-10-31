@@ -26,8 +26,7 @@ export class KaraokeRenderer {
   private linesBox!: HTMLElement;
   private dots!: HTMLElement;
   private idle!: HTMLElement;
-  private idleTitle!: HTMLElement;
-  private idleArtist!: HTMLElement;
+  private idleBar!: HTMLElement;
   private fxBox!: HTMLElement;
   private fxVideos = new Map<SectionType, HTMLVideoElement>();
 
@@ -39,6 +38,7 @@ export class KaraokeRenderer {
   private shownType: SectionType | null = null;
   private shownCount = -1;
   private shownIdle: boolean | null = null;
+  private shownWait = -1;
 
   /** Insère le DOM du lecteur dans `element` (qui doit avoir une taille, ex. plein écran). */
   mount(element: HTMLElement): void {
@@ -48,7 +48,7 @@ export class KaraokeRenderer {
     this.root.innerHTML = `
       <div class="kr-bg"></div><div class="kr-fx"></div><div class="kr-glow"></div>
       <div class="kr-idle"><div class="kr-eq"><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="kr-title"></div><div class="kr-artist"></div></div>
+        <div class="kr-wait"><div class="kr-wait-bar"></div></div></div>
       <div class="kr-dots"><i></i><i></i><i></i></div>
       <div class="kr-lines"></div>`;
     element.appendChild(this.root);
@@ -56,8 +56,7 @@ export class KaraokeRenderer {
     this.linesBox = this.root.querySelector('.kr-lines')!;
     this.dots = this.root.querySelector('.kr-dots')!;
     this.idle = this.root.querySelector('.kr-idle')!;
-    this.idleTitle = this.root.querySelector('.kr-title')!;
-    this.idleArtist = this.root.querySelector('.kr-artist')!;
+    this.idleBar = this.root.querySelector('.kr-wait-bar')!;
     this.applyTheme();
     this.setType('intro');
   }
@@ -69,12 +68,6 @@ export class KaraokeRenderer {
     this.clearLines();
     this.shownCount = -1;
     this.shownIdle = null;
-  }
-
-  /** Titre/artiste affichés pendant les passages instrumentaux. */
-  setMeta(meta: { title?: string; artist?: string }): void {
-    this.idleTitle.textContent = meta.title ?? '';
-    this.idleArtist.textContent = meta.artist ?? '';
   }
 
   setTheme(theme: Partial<Theme>): void {
@@ -106,6 +99,7 @@ export class KaraokeRenderer {
     this.setType(this.typeFor(st));
     this.setIdle(st.kind === 'wait' && st.count === 0);
     this.setDots(st.kind === 'wait' ? st.count : 0);
+    this.setWaitBar(st);
     this.layout(shown);
     for (const le of this.els.values()) this.paint(le, t);
   }
@@ -157,6 +151,14 @@ export class KaraokeRenderer {
     if (on === this.shownIdle) return;
     this.shownIdle = on;
     this.idle.classList.toggle('on', on);
+  }
+
+  /** Barre de patience : se vide à mesure que la reprise approche (pleine = début de la pause). */
+  private setWaitBar(st: DisplayState): void {
+    const ratio = st.kind === 'wait' && Number.isFinite(st.total) ? Math.min(1, Math.max(0, st.until / st.total)) : 1;
+    if (Math.abs(ratio - this.shownWait) < 0.002) return;
+    this.shownWait = ratio;
+    this.idleBar.style.transform = `scaleX(${ratio.toFixed(3)})`;
   }
 
   private setDots(n: number): void {

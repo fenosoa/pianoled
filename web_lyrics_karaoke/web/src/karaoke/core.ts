@@ -69,11 +69,14 @@ export function wordProgress(w: FlatWord, t: number): number {
 export type DisplayState =
   /** on chante la ligne `idx` */
   | { kind: 'sing'; idx: number }
-  /** silence : `next` = prochaine ligne (-1 si fin), `count` = points 3..1 (0 = pas de compte à rebours) */
-  | { kind: 'wait'; next: number; count: number; until: number };
+  /**
+   * silence : `next` = prochaine ligne (-1 si fin), `count` = points 3..1 (0 = pas de compte à rebours),
+   * `until` = secondes avant la reprise, `total` = durée totale de la pause (Infinity si fin de chanson)
+   */
+  | { kind: 'wait'; next: number; count: number; until: number; total: number };
 
 export function computeState(lines: FlatLine[], t: number, o: CoreOptions = DEFAULT_CORE): DisplayState {
-  if (!lines.length) return { kind: 'wait', next: -1, count: 0, until: Infinity };
+  if (!lines.length) return { kind: 'wait', next: -1, count: 0, until: Infinity, total: Infinity };
   // dernière ligne démarrée (avec anticipation)
   let i = -1;
   for (let k = 0; k < lines.length; k++) {
@@ -83,7 +86,9 @@ export function computeState(lines: FlatLine[], t: number, o: CoreOptions = DEFA
   const waitOn = (next: number): DisplayState => {
     const until = next >= 0 ? lines[next].start - t : Infinity;
     const count = until <= o.countdown ? Math.min(3, Math.max(1, Math.ceil(until))) : 0;
-    return { kind: 'wait', next, count, until };
+    const since = i >= 0 ? lines[i].end + o.hold : 0;
+    const total = next >= 0 ? Math.max(lines[next].start - since, 0.001) : Infinity;
+    return { kind: 'wait', next, count, until, total };
   };
   if (i < 0) return waitOn(0);
   const next = i + 1 < lines.length ? i + 1 : -1;

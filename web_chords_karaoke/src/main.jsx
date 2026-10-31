@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import VideoPlayer from './g-video-player.component.jsx';
+import { cleanLabel } from './label.js';
 import './styles.css';
 
 // --- PAROLES (facultatives) : <chanson>/<nom>.lyrics.json dans piano_stems_output (voir vite.config.js) ;
@@ -128,7 +129,7 @@ function App() {
       videoMeta={videoMeta}
       timelineData={timelineData}
       lyricsData={lyricsData}
-      songTitle={song.title}
+      songTitle={cleanLabel(song.title)}
       songId={song.name}
       onQueue={setQueue}
       onSelect={hasOverride ? undefined : select}

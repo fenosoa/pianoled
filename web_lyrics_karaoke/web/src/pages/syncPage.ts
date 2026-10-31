@@ -39,7 +39,6 @@ export function mountSyncPage(host: HTMLElement, params: URLSearchParams): () =>
     clock.onSong((s) => {
       hasSong = !!s.lyrics;
       if (s.lyrics) {
-        renderer.setMeta({ title: s.title, artist: '' });
         renderer.load(s.lyrics);
       }
       refresh();
