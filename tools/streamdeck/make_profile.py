@@ -22,6 +22,7 @@ FONT = "C:/Windows/Fonts/segoeuib.ttf"
 SYM = "C:/Windows/Fonts/seguisym.ttf"
 
 VOICE, PIANO, GUITAR, MODE, TRANSPORT = "#e0457b", "#3b82f6", "#f59e0b", "#10b981", "#8b5cf6"
+LED = "#ef4444"
 
 # (colonne, ligne, id, chemin, libellé, couleur, glyphe)
 KEYS = [
@@ -36,9 +37,9 @@ KEYS = [
     (2, 2, "3_performance", "mixer/3", "JE JOUE", MODE, "🎹"),
     (3, 2, "0_reset", "mixer/0", "RESET", "#64748b", "↺"),
     (3, 0, "play_pause", "play-pause", "PLAY/PAUSE", TRANSPORT, "⏯"),
-    (4, 0, "next", "next", "SUIVANT", TRANSPORT, "⏭"),
+    (4, 0, "led_idle", "led/idle", "LEDS OFF", LED, "💡"),
+    (4, 1, "led_synthesia", "led/synthesia", "SYNTHESIA", LED, "🎹"),
     (3, 1, "restart", "restart", "DÉBUT", TRANSPORT, "⏮"),
-    (4, 1, "previous", "previous", "PRÉCÉDENT", TRANSPORT, "◀◀"),
 ]
 
 

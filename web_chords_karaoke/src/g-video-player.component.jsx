@@ -315,6 +315,13 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
 
   // --- SYNCHRO WebSocket : ce lecteur est le maître de la timeline de web_lyrics_karaoke ---
   const syncRef = useRef(null);
+  const chordRef = useRef('');
+  useEffect(() => {
+    const chord = simplifyChord(parsedTimeline[activeIndex]?.chord);
+    chordRef.current = chord;
+    const video = videoRef.current;
+    if (video && !video.paused && !video.ended) syncRef.current?.sendChord(chord);
+  }, [activeIndex, parsedTimeline]);
   useEffect(() => {
     const video = videoRef.current;
     if (!video || new URLSearchParams(location.search).get('sync') === 'off') return;
@@ -329,7 +336,13 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
         transportRef.current[msg.action]?.(msg.name);
       }
     });
-    const push = () => sync.sendState(video);
+    // Pilotage des LEDs du piano (Pi) : accord courant pendant la lecture, `idle` à l'arrêt.
+    // Renvoyé à chaque battement (1 s) : le Pi repasse en pause s'il ne reçoit aucun `chord` pendant un moment.
+    const push = () => {
+      sync.sendState(video);
+      if (video.paused || video.ended) sync.sendIdle();
+      else sync.sendChord(chordRef.current);
+    };
     const events = ['play', 'pause', 'seeked', 'ratechange', 'ended', 'loadedmetadata'];
     events.forEach((e) => video.addEventListener(e, push));
     const beat = setInterval(() => { if (!video.paused) push(); }, 1000);

@@ -34,12 +34,14 @@ export function createSyncMaster(url = `${location.protocol === 'https:' ? 'wss'
 
   const send = (msg) => {
     const data = JSON.stringify(msg);
-    last[msg.type] = data;
+    if (msg.type !== 'chord' && msg.type !== 'idle') last[msg.type] = data; // éphémères : jamais rejoués à la reconnexion
     if (ws?.readyState === 1) ws.send(data);
   };
 
   return {
     sendSong: (name, title, lyrics, id) => send({ type: 'song', name, title, lyrics, id }),
+    sendChord: (chord) => send({ type: 'chord', chord }),
+    sendIdle: () => send({ type: 'idle' }),
     sendState: (video) =>
       send({ type: 'state', playing: !video.paused && !video.ended, time: video.currentTime, rate: video.playbackRate }),
     setMessageHandler: (fn) => {

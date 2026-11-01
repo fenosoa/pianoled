@@ -7,6 +7,9 @@ const { LedEngine } = require('../engine');
 const { loadMidi } = require('../adapters/midi-backend');
 const { ManagedPort } = require('../adapters/managed-port');
 const { MidiRouter } = require('../adapters/router');
+const { loadKaraokeConfig } = require('../karaoke/config');
+const { KaraokeController } = require('../karaoke/controller');
+const { KaraokeSocket } = require('../karaoke/ws-client');
 const { parseArgs, loadCliConfig, printBanner, printMetrics } = require('./common');
 
 async function main() {
@@ -43,8 +46,24 @@ async function main() {
     forwardKeyboard: m.forwardKeyboard, echoGuardMs: m.echoGuardMs, synthStaleMs: m.synthStaleMs, diag, pitch: config.pitch, logger,
   });
 
+  // Karaoke mode (optional): chords from the web player drive the LEDs. Starts in IDLE = unchanged behaviour.
+  const karaokeCfg = loadKaraokeConfig();
+  let karaoke = null;
+  let karaokeSocket = null;
+  if (karaokeCfg.enabled || args.karaoke) {
+    karaoke = new KaraokeController({ engine, config: karaokeCfg, logger });
+    karaokeSocket = new KaraokeSocket({
+      url: karaokeCfg.wsUrl,
+      logger,
+      onMessage: (raw) => karaoke.handleMessage(raw),
+      onDisconnect: () => karaoke.onDisconnect(),
+    });
+    console.log(`Karaoke: ${karaokeCfg.wsUrl} (pause timeout ${karaokeCfg.pauseTimeoutMs / 1000}s, fade ${karaokeCfg.fadeMs}ms)`);
+  }
+
   engine.start();
   router.start();
+  if (karaokeSocket) karaokeSocket.start();
   [keyboardIn, synthesiaIn, synthesiaOut, keyboardOut].forEach((p) => p && p.start());
 
   const status = () => {
@@ -64,6 +83,8 @@ async function main() {
     if (stopping) return;
     stopping = true;
     if (statusTimer) clearInterval(statusTimer);
+    if (karaokeSocket) karaokeSocket.stop();
+    if (karaoke) karaoke.stop();
     router.stop(); // releases notes still sounding on the keyboard before its port closes
     [keyboardIn, synthesiaIn, synthesiaOut, keyboardOut].forEach((p) => p && p.stop());
     printMetrics(engine);

@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "wsUrl": "ws://192.168.1.39:5180/sync",
+  "pauseTimeoutS": 30,
+  "fadeMs": 120,
+  "onNoChord": "off",
+  "brightness": {
+    "pause": 1.0,
+    "karaoke": 0.25
+  },
+  "ripple": {
+    "enabled": true,
+    "brightness": 0.15,
+    "speed": 18,
+    "wavelength": 24,
+    "fps": 30
+  },
+  "bassColor": "#FF0000",
+  "defaultColor": "#FFFFFF",
+  "chordColors": {
+    "C": "#FF3B30",
+    "D": "#FF9500",
+    "E": "#FFD60A",
+    "F": "#34C759",
+    "G": "#00C7BE",
+    "A": "#0A84FF",
+    "B": "#BF5AF2",
+    "Cm": "#B0221B",
+    "Dm": "#B36800",
+    "Em": "#B39B00",
+    "Fm": "#238A3E",
+    "Gm": "#008A84",
+    "Am": "#0A5FBF",
+    "Bm": "#8A3FB0"
+  }
+}

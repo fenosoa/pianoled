@@ -122,6 +122,7 @@ const stemsPlugin = {
 // ({type:'command', key}), qui exécute le raccourci de même numéro (voir MIXER_SHORTCUTS dans le lecteur).
 // Transport : GET ou POST /control/play-pause | restart | next | previous → {type:'command', action}.
 const SYNC_PATH = '/sync';
+const LED_MODE_RE = /^\/control\/led\/(idle|synthesia)\/?$/;
 const CONTROL_RE = /^\/control\/(?:mixer\/(?<key>[0-9])|(?<action>play-pause|restart|next|previous))\/?$/;
 const syncPlugin = {
   name: 'sync-hub',
@@ -151,6 +152,16 @@ function attachSyncHub({ httpServer, middlewares }) {
       playNow: (name) => sendMaster({ type: 'command', action: 'play', name }),
     })
   );
+
+  const sendFollowers = (msg) => followers.forEach((f) => f.readyState === 1 && f.send(JSON.stringify(msg)));
+  middlewares.use((req, res, next) => {
+    const led = LED_MODE_RE.exec(req.url.split('?')[0]);
+    if (!led || (req.method !== 'GET' && req.method !== 'POST')) return next();
+    // idle : le prochain `chord` du lecteur relance le karaoké ; synthesia : le Pi ignore le lecteur jusqu'au prochain idle manuel
+    sendFollowers(led[1] === 'idle' ? { type: 'idle', manual: true } : { type: 'synthesia' });
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ ok: true }));
+  });
 
   middlewares.use((req, res, next) => {
     const match = CONTROL_RE.exec(req.url.split('?')[0]);
@@ -186,13 +197,15 @@ function attachSyncHub({ httpServer, middlewares }) {
           followers.add(ws);
           if (last.song) ws.send(last.song);
           if (last.state) ws.send(last.state);
+          // Un suiveur LED qui arrive pendant une pause ne doit pas rester en mode karaoké à cause du `song` rejoué
+          if ((last.state && !JSON.parse(last.state).playing)) ws.send(JSON.stringify({ type: 'idle' }));
         }
         return;
       }
-      if (role !== 'master' || (msg.type !== 'song' && msg.type !== 'state')) return;
+      if (role !== 'master' || (msg.type !== 'song' && msg.type !== 'state' && msg.type !== 'chord' && msg.type !== 'idle')) return;
       if (msg.type === 'song') store.setCurrent(msg.id);
       const data = String(raw);
-      last[msg.type] = data;
+      if (msg.type === 'song' || msg.type === 'state') last[msg.type] = data; // chord / idle : relayés sans cache
       followers.forEach((f) => f.readyState === 1 && f.send(data));
     });
     ws.on('close', () => {
@@ -204,6 +217,7 @@ function attachSyncHub({ httpServer, middlewares }) {
           last.state = paused;
           followers.forEach((f) => f.readyState === 1 && f.send(paused));
         }
+        followers.forEach((f) => f.readyState === 1 && f.send(JSON.stringify({ type: 'idle' }))); // lecteur parti : LEDs en pause
       }
     });
   });

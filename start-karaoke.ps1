@@ -48,3 +48,14 @@ foreach ($s in $services) {
 Write-Host ''
 Write-Host 'Lecteur d''accords : http://localhost:5180   Playlist : http://localhost:5180/playlist.html'
 Write-Host 'Guitare            : http://localhost:5190   Paroles  : http://localhost:5173/#/sync'
+
+# Adresses IPv4 de l'hôte (hors loopback / APIPA) pour ouvrir les pages depuis un autre appareil du réseau
+$ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+    Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
+    Sort-Object InterfaceMetric
+foreach ($ip in $ips) {
+    Write-Host ''
+    Write-Host ('Réseau {0} ({1})' -f $ip.IPAddress, $ip.InterfaceAlias) -ForegroundColor Cyan
+    Write-Host "  Accords  : http://$($ip.IPAddress):5180   Playlist : http://$($ip.IPAddress):5180/playlist.html"
+    Write-Host "  Guitare  : http://$($ip.IPAddress):5190   Paroles  : http://$($ip.IPAddress):5173/#/sync"
+}
