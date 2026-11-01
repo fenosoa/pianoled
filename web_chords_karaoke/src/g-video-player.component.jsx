@@ -31,7 +31,14 @@ const MIXER_SHORTCUTS = {
   9: { type: 'volume', name: 'guitar', delta: -VOLUME_STEP },
   0: { type: 'set', muted: [] },
 };
-const AUDIO_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|flac)(\?|#|$)/i;
+// Touches lettres (par e.key, donc valables en AZERTY comme en QWERTY) : transport ou raccourci du mixeur
+const LETTER_SHORTCUTS = {
+  p: { transport: 'play-pause' },
+  r: { transport: 'restart' },
+  v: { mixer: 2 }, // voix on/off
+  i: { mixer: 3 }, // piano + guitare on/off
+};
+const AUDIO_EXT =/\.(mp3|m4a|aac|wav|ogg|oga|flac)(\?|#|$)/i;
 const DRIFT_MAX = 0.06; // écart toléré entre pistes (s)
 const HLS_EXT = /\.m3u8(\?|#|$)/i;
 
@@ -271,12 +278,16 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
       if (!video) return;
       video.currentTime = 0;
       setCurrentTime(0);
-      video.play().catch(() => {});
+      video.pause(); // recommencer = retour au début à l'arrêt, sans lecture
     },
     next: onNext,
     previous: onPrevious,
     play: (name) => {
-      if (name === songId) return transportRef.current.restart();
+      if (name === songId) {
+        transportRef.current.restart();
+        videoRef.current?.play().catch(() => {});
+        return;
+      }
       playOnLoadRef.current = true;
       onSelect?.(name);
     },
@@ -335,7 +346,8 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
     if (videoRef.current) syncRef.current?.sendState(videoRef.current);
   }, [lyricsData, songTitle, songId]);
 
-  // --- CLAVIER (réel ou virtuel/injecté) : ← = -3 s, Espace = play/pause, 1–0 = mixeur (voir MIXER_SHORTCUTS) ---
+  // --- CLAVIER (réel ou virtuel/injecté) : ← = -3 s, Espace ou P = play/pause, R = recommencer à l'arrêt,
+  // V = voix on/off, I = piano + guitare on/off, 1–0 = mixeur (voir MIXER_SHORTCUTS) ---
   useEffect(() => {
     const isSpace = (e) => e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
     const isLeft = (e) => e.key === 'ArrowLeft' || e.code === 'ArrowLeft';
@@ -351,6 +363,12 @@ const VideoPlayer = ({ videoMeta, timelineData = null, lyricsData = null, onProg
       } else if (/^(Digit|Numpad)\d$/.test(e.code) && MIXER_SHORTCUTS[e.code.slice(-1)]) {
         e.preventDefault();
         if (!e.repeat) mixerActionRef.current?.(MIXER_SHORTCUTS[e.code.slice(-1)]);
+      } else if (Object.hasOwn(LETTER_SHORTCUTS, e.key.toLowerCase()) && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        const { transport, mixer } = LETTER_SHORTCUTS[e.key.toLowerCase()];
+        if (transport) transportRef.current[transport]();
+        else mixerActionRef.current?.(MIXER_SHORTCUTS[mixer]);
       } else if (isSpace(e)) {
         e.preventDefault(); // évite aussi le défilement de la page / le clic sur un bouton focalisé
         if (e.repeat) return;
