@@ -9,8 +9,28 @@ const POLL_MS = 2000;
 
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Interprète : enregistré à la validation (Entrée ou sortie du champ) ; vide = aucun interprète
+function PerformerInput({ value, onSave }) {
+  const commit = (e) => {
+    const next = e.target.value.trim();
+    if (next !== value) onSave(next);
+  };
+  return (
+    <input
+      className="pl-performer"
+      defaultValue={value}
+      placeholder="Interprète"
+      aria-label="Interprète"
+      draggable
+      onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+    />
+  );
+}
+
 function App() {
-  const [state, setState] = React.useState({ library: [], queue: [], current: null });
+  const [state, setState] = React.useState({ library: [], queue: [], current: null, performers: {} });
   const [search, setSearch] = React.useState('');
   const [dragName, setDragName] = React.useState(null);
   const [overName, setOverName] = React.useState(null);
@@ -63,6 +83,7 @@ function App() {
       <span className="pl-key" title="Changement(s) de tonalité">♯ {s.keyChanges.map((k) => k.transpose).join(' · ')}</span>
     );
   const songs = React.useMemo(() => new Map(state.library.map((s) => [s.name, s])), [state.library]);
+  const performers = state.performers ?? {};
 
   const setQueue = (queue) => call('queue', { queue }, 'PUT');
   const move = (from, to) => {
@@ -97,6 +118,7 @@ function App() {
               <span className="pl-grip" aria-hidden>⠿</span>
               <span className="pl-title">{cleanLabel(titles.get(name) ?? name)}</span>
               {keyBadge(songs.get(name))}
+              <PerformerInput key={`${name}|${performers[name] ?? ''}`} value={performers[name] ?? ''} onSave={(performer) => call('performer', { name, performer })} />
               <button onClick={() => call('play', { name })} title="Lire maintenant">▶</button>
               <button onClick={() => move(i, i - 1)} disabled={i === 0} title="Monter">▲</button>
               <button onClick={() => move(i, i + 1)} disabled={i === state.queue.length - 1} title="Descendre">▼</button>
@@ -125,6 +147,7 @@ function App() {
             <li key={s.name} className={`pl-item ${s.name === state.current ? 'current' : ''}`}>
               <span className="pl-title">{cleanLabel(s.title)}</span>
               {keyBadge(s)}
+              {performers[s.name] && <span className="pl-who" title="Interprète">{performers[s.name]}</span>}
               <button onClick={() => call('play', { name: s.name })} title="Lire maintenant">▶ Lire</button>
               <button onClick={() => call('play-next', { name: s.name })} title="Juste après la chanson en cours">⏭ Ensuite</button>
               <button onClick={() => call('add', { name: s.name })} title="À la fin de la file">＋ À la suite</button>

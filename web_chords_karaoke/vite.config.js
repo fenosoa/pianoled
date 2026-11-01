@@ -140,7 +140,11 @@ function attachSyncHub({ httpServer, middlewares }) {
   const followers = new Set();
   let master = null;
   const last = { song: null, state: null };
-  const store = createPlaylistStore({ file: path.resolve(import.meta.dirname, 'playlist.json'), listSongs });
+  const store = createPlaylistStore({
+    file: path.resolve(import.meta.dirname, 'playlist.json'),
+    performersFile: path.resolve(import.meta.dirname, 'playlist.performers.json'),
+    listSongs,
+  });
   const sendMaster = (msg) => {
     const ok = master?.readyState === 1;
     if (ok) master.send(JSON.stringify(msg));

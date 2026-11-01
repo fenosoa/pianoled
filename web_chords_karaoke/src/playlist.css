@@ -24,4 +24,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; color
 .pl-empty { color: #777; padding: 12px; }
 
 .pl-key { flex: 0 0 auto; padding: 1px 8px; border-radius: 999px; background: #FFD700; color: #000; font-size: 0.8em; font-weight: 700; white-space: nowrap; }
+.pl-who { flex: 0 0 auto; padding: 1px 10px; border-radius: 999px; background: #e3ecff; color: #1d3a8a; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+.pl-performer { flex: 0 0 120px; width: 120px; padding: 6px 8px; font-size: 15px; border: 2px solid #ccd6f0; border-radius: 8px; background: #f3f6ff; color: #1d3a8a; font-weight: 600; }
+.pl-performer:placeholder-shown { border-style: dashed; font-weight: 400; }
 .pl-filter { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }

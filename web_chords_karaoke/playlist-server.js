@@ -6,7 +6,8 @@ import fs from 'node:fs';
 // Sans fichier, la file = toute la bibliothèque (ordre alphabétique) : comportement d'origine du lecteur.
 const API_PREFIX = '/playlist/api';
 
-export function createPlaylistStore({ file, listSongs }) {
+// Interprète (qui chante) de chaque chanson : { nom de chanson: "Tinà" }, dans `performersFile`, à côté de la file.
+export function createPlaylistStore({ file, performersFile, listSongs }) {
   let saved = null;
   try {
     const data = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -14,6 +15,21 @@ export function createPlaylistStore({ file, listSongs }) {
   } catch {
     /* pas de fichier : file par défaut */
   }
+  let performers = {};
+  try {
+    const data = JSON.parse(fs.readFileSync(performersFile, 'utf8'));
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      performers = Object.fromEntries(Object.entries(data).filter(([, v]) => typeof v === 'string' && v.trim()));
+    }
+  } catch {
+    /* pas de fichier : aucun interprète */
+  }
+  const writePerformers = () => fs.writeFileSync(performersFile, JSON.stringify(performers, null, 2));
+  const setPerformer = (name, performer) => {
+    const value = typeof performer === 'string' ? performer.trim() : '';
+    if (value) performers[name] = value;
+    else delete performers[name];
+  };
   let current = null; // chanson en cours de lecture, signalée par le lecteur
 
   const queue = () => {
@@ -42,10 +58,22 @@ export function createPlaylistStore({ file, listSongs }) {
     setCurrent(name) {
       current = typeof name === 'string' ? name : null;
     },
-    state: () => ({ library: listSongs().map(({ name, title, keyChanges }) => ({ name, title, keyChanges })), queue: queue(), current }),
-    // Retourne true si la file a changé (le hub la renvoie alors au lecteur)
+    state: () => ({ library: listSongs().map(({ name, title, keyChanges }) => ({ name, title, keyChanges })), queue: queue(), current, performers }),
+    // Retourne true si la requête est valide (le hub renvoie alors la file au lecteur)
     apply(action, body) {
       const name = body?.name;
+      if (action === 'performer') {
+        if (!known(name)) return false;
+        setPerformer(name, body.performer);
+        writePerformers();
+        return true;
+      }
+      if (action === 'performers') {
+        if (!body?.performers || typeof body.performers !== 'object') return false;
+        for (const [n, p] of Object.entries(body.performers)) if (known(n)) setPerformer(n, p);
+        writePerformers();
+        return true;
+      }
       if (action === 'queue') {
         if (!Array.isArray(body?.queue)) return false;
         write(body.queue.filter((n) => typeof n === 'string' && known(n)));
@@ -67,7 +95,7 @@ export function createPlaylistStore({ file, listSongs }) {
   };
 }
 
-// Middleware HTTP : GET /playlist/api (état) ; PUT/POST /playlist/api/<queue|add|play-next|play|remove>
+// Middleware HTTP : GET /playlist/api (état) ; PUT/POST /playlist/api/<queue|add|play-next|play|remove|performer|performers>
 export function playlistMiddleware(store, { onChange, playNow }) {
   return (req, res, next) => {
     const url = req.url.split('?')[0].replace(/\/$/, '');
