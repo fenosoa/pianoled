@@ -7,7 +7,7 @@ const GROUPS = [
   { id: 'perf', label: 'Cadence & latence', icon: 'gauge', hint: 'Fréquence d’envoi et regroupement des trames.' },
   { id: 'colors', label: 'Couleurs', icon: 'palette', hint: 'Luminosité globale et couleurs des sources.' },
   { id: 'mapping', label: 'Mapping notes → LEDs', icon: 'map', hint: 'Correspondance entre notes MIDI et index de LED.' },
-  { id: 'midi', label: 'Ports MIDI', icon: 'plug', hint: 'Clavier, Synthesia et routage.' },
+  { id: 'midi', label: 'Ports MIDI', title: 'Configuration des sources', icon: 'plug', hint: 'Clavier, Synthesia et routage.' },
   { id: 'pitch', label: 'Transposition & octave', icon: 'music', hint: 'Appliqué à chaud. Synthesia ne doit appliquer aucun décalage de son côté : tout est géré ici et par le PSR. Les LED et la validation Synthesia restent dans la tonalité des morceaux.' },
   { id: 'misc', label: 'Divers', icon: 'cog', hint: 'Pédale de sustain, logs.' },
 ];
@@ -43,15 +43,16 @@ const FIELDS = [
   // Fixed path (not editable in the UI): the table is edited in the dedicated note-map editor.
   { key: 'NOTE_MAP_FILE', group: 'mapping', type: 'text', hidden: true, label: 'Fichier de table', def: 'config/note-map.json' },
 
-  { key: 'KEYBOARD_IN_PORT', group: 'midi', type: 'port-in', label: 'Entrée clavier', help: 'Sous-chaîne du nom du port (insensible à la casse).', def: '' },
-  { key: 'SYNTHESIA_IN_PORT', group: 'midi', type: 'port-in', label: 'Entrée Synthesia', help: 'Port d’où Synthesia envoie ses notes.', def: '' },
-  { key: 'SYNTHESIA_OUT_PORT', group: 'midi', type: 'port-out', label: 'Sortie vers Synthesia', help: 'Où le clavier est retransmis.', def: '' },
-  { key: 'KEYBOARD_OUT_PORT', group: 'midi', type: 'port-out', label: 'Sortie clavier', help: 'Vide = identique à l’entrée clavier.', def: '' },
+  // Order follows the signal flow; the two forward switches reveal only the fields of their own link.
+  { key: 'KEYBOARD_IN_PORT', group: 'midi', type: 'port-in', label: 'Clavier → Raspberry Pi', help: 'Sous-chaîne du nom du port d’entrée (insensible à la casse).', def: '' },
+  { key: 'SYNTHESIA_IN_PORT', group: 'midi', type: 'port-in', label: 'Synthesia → Raspberry Pi', help: 'Port d’où Synthesia envoie ses notes.', def: '' },
+  { key: 'SYNTH_STALE_MS', group: 'midi', type: 'int', label: 'Synthesia → LEDs : péremption', unit: 'ms', help: '>0 : éteint les LEDs Synthesia sans message depuis N ms.', def: '0', min: 0, max: 3600000 },
   { key: 'FORWARD_KEYBOARD', group: 'midi', type: 'bool', label: 'Retransmettre clavier → Synthesia', help: 'Désactiver si le routage est fait via aconnect.', def: '1' },
-  { key: 'FORWARD_SYNTHESIA', group: 'midi', type: 'bool', label: 'Jouer Synthesia sur le clavier', help: 'Utilise le moteur sonore du clavier.', def: '0' },
-  { key: 'PORT_POLL_MS', group: 'midi', type: 'int', label: 'Scrutation des ports', unit: 'ms', help: 'Reconnexion automatique.', def: '2000', min: 200, max: 60000 },
-  { key: 'ECHO_GUARD_MS', group: 'midi', type: 'int', label: 'Garde anti-écho', unit: 'ms', help: '>0 : ignore une note Synthesia identique à une note clavier récente.', def: '0', min: 0, max: 1000 },
-  { key: 'SYNTH_STALE_MS', group: 'midi', type: 'int', label: 'Péremption Synthesia', unit: 'ms', help: '>0 : éteint les LEDs Synthesia sans message depuis N ms.', def: '0', min: 0, max: 3600000 },
+  { key: 'SYNTHESIA_OUT_PORT', group: 'midi', type: 'port-out', label: 'Raspberry Pi → Synthesia', help: 'Port de sortie où le clavier est retransmis.', def: '', showIf: { FORWARD_KEYBOARD: '1' } },
+  { key: 'ECHO_GUARD_MS', group: 'midi', type: 'int', label: 'Synthesia → Raspberry Pi : garde anti-écho', unit: 'ms', help: '>0 : ignore une note Synthesia identique à une note clavier retransmise récemment.', def: '0', min: 0, max: 1000, showIf: { FORWARD_KEYBOARD: '1' } },
+  { key: 'FORWARD_SYNTHESIA', group: 'midi', type: 'bool', label: 'Retransmettre Synthesia → clavier', help: 'Utilise le moteur sonore du clavier.', def: '0' },
+  { key: 'KEYBOARD_OUT_PORT', group: 'midi', type: 'port-out', label: 'Raspberry Pi → Clavier', help: 'Vide = identique à l’entrée clavier.', def: '', showIf: { FORWARD_SYNTHESIA: '1' } },
+  { key: 'PORT_POLL_MS', group: 'midi', type: 'int', label: 'Raspberry Pi ↔ ports MIDI : scrutation', unit: 'ms', help: 'Reconnexion automatique.', def: '2000', min: 200, max: 60000 },
 
   { key: 'AUDIO_TRANSPOSE_SEMITONES', group: 'pitch', hot: true, type: 'int', label: 'Son : transposition', unit: 'demi-tons', help: 'Synthesia → PSR. Ex. −3 : un morceau en Sol sonne en Mi. Les LED ne changent pas.', def: '0', min: -12, max: 12 },
   { key: 'AUDIO_OCTAVE_SHIFT', group: 'pitch', hot: true, type: 'int', label: 'LED Synthesia : décalage d’octave', unit: 'octaves', help: 'Déplace les LED allumées par Synthesia (12 touches par octave) ; les notes du clavier envoyées à Synthesia sont décalées en sens inverse pour que la validation suive. LED clavier, son et tonalité inchangés.', def: '0', min: -3, max: 3 },

@@ -15,7 +15,13 @@ const STATE_LABEL = {
 
 function visible(field, values) {
   if (field.hidden) return false;
-  return !field.showIf || Object.entries(field.showIf).every(([k, v]) => values[k] === v);
+  return !field.showIf || Object.entries(field.showIf).every(([k, v]) => matchesCondition(values[k], v));
+}
+
+// '1' / '0' target a switch, whatever spelling the .env uses (1, true, yes, on).
+function matchesCondition(actual, expected) {
+  if (expected === '1' || expected === '0') return /^(1|true|yes|on)$/i.test(actual ?? '') === (expected === '1');
+  return actual === expected;
 }
 
 export default function App() {
@@ -180,7 +186,7 @@ export default function App() {
           <NoteMapEditor notify={notify} mappingMode={draft.MAPPING_MODE} running={state === 'running'} onUseTable={() => set('MAPPING_MODE', 'table')} />
         ) : (<>
           <div className="head">
-            <h2>{q ? `Résultats pour « ${query} »` : current.label}</h2>
+            <h2>{q ? `Résultats pour « ${query} »` : current.title || current.label}</h2>
             <p>{q ? `${shown.length} paramètre(s)` : current.hint}</p>
           </div>
           {group === 'midi' && !q && (
