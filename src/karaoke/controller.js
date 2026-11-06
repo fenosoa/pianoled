@@ -118,6 +118,12 @@ class KaraokeController {
     }
   }
 
+  /** Mode applied once at startup (DEFAULT_MODE). IDLE is the constructor's state; KARAOKE waits for chords without timing out. */
+  applyDefaultMode(mode) {
+    if (mode === 'SYNTHESIA') this.enterIdle('default mode', 'SYNTHESIA');
+    else if (mode === 'KARAOKE') this.enterKaraoke('default mode');
+  }
+
   onDisconnect() {
     this.enterIdle('websocket disconnected');
   }

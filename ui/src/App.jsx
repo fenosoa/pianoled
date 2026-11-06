@@ -116,7 +116,7 @@ export default function App() {
     return () => clearTimeout(t);
   }, [autoApply, dirty, check.ok, draft, busy]);
 
-  const ctl = (name, path, okMsg) => run(name, () => api(path, {}), okMsg);
+  const ctl = (name, path, okMsg, body = {}) => run(name, () => api(path, body), okMsg);
 
   if (!schema) return <div className="boot">Chargement…</div>;
 
@@ -150,6 +150,12 @@ export default function App() {
           </button>
           <button className="btn ghost" disabled={!!busy || !status?.pid} onClick={() => ctl('stop', '/api/stop', 'Service arrêté')}>
             <Icon name="stop" /> Arrêter
+          </button>
+          <button className="btn ghost" disabled={state !== 'running'} onClick={() => ctl('mode-synthesia', '/api/mode', 'Mode Synthesia forcé', { mode: 'SYNTHESIA' })} title="Force le mode Synthesia (ignore le lecteur d’accords)">
+            <Icon name="music" /> Synthesia
+          </button>
+          <button className="btn ghost" disabled={state !== 'running'} onClick={() => ctl('mode-idle', '/api/mode', 'Mode Idle (karaoké automatique)', { mode: 'IDLE' })} title="Revient en Idle : le karaoké reprend automatiquement dès qu’un accord arrive">
+            <Icon name="play" /> Idle
           </button>
           <button className="btn danger" disabled={!status?.pid || state !== 'running'} onClick={() => ctl('panic', '/api/panic', 'Panic : LEDs éteintes')} title="Éteint toutes les LEDs sans arrêter le service">
             <Icon name="bolt" /> Panic

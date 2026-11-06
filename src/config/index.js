@@ -184,6 +184,8 @@ function loadConfig(env = process.env, { baseDir = process.cwd() } = {}) {
     },
     pitch: loadPitch(env),
     sustainMode: readEnum(env, 'SUSTAIN_MODE', 'keys', ['keys', 'sound']),
+    // LED mode at startup (karaoke controller): IDLE | SYNTHESIA | KARAOKE
+    defaultMode: readEnum(env, 'DEFAULT_MODE', 'IDLE', ['IDLE', 'SYNTHESIA', 'KARAOKE']),
     midi: {
       keyboardIn: env.KEYBOARD_IN_PORT || '',
       synthesiaIn: env.SYNTHESIA_IN_PORT || '',

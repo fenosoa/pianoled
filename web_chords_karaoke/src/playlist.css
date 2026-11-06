@@ -28,3 +28,17 @@ body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; color
 .pl-performer { flex: 0 0 120px; width: 120px; padding: 6px 8px; font-size: 15px; border: 2px solid #ccd6f0; border-radius: 8px; background: #f3f6ff; color: #1d3a8a; font-weight: 600; }
 .pl-performer:placeholder-shown { border-style: dashed; font-weight: 400; }
 .pl-filter { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }
+
+/* Téléphone : titre pleine largeur, puis badges / interprète / boutons sur la ligne suivante */
+@media (max-width: 600px) {
+  .pl { padding: 10px; gap: 20px; }
+  .pl-col h2 { font-size: 18px; }
+  .pl-search { font-size: 16px; padding: 10px 12px; } /* 16px : évite le zoom auto d'iOS */
+  .pl-item { flex-wrap: wrap; gap: 6px; padding: 8px; }
+  .pl-grip { display: none; } /* le glisser-déposer n'existe pas au tactile : ▲▼ suffisent */
+  .pl-title { flex: 1 1 100%; white-space: normal; overflow: visible; font-weight: 600; }
+  .pl-performer { flex: 1 1 120px; width: auto; min-width: 0; font-size: 16px; }
+  .pl-item button { flex: 1 1 auto; min-height: 44px; min-width: 44px; }
+  .pl-filter { min-height: 44px; }
+  .pl-filter input { width: 20px; height: 20px; }
+}

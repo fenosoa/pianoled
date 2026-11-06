@@ -115,6 +115,13 @@ class Runner extends EventEmitter {
     return true;
   }
 
+  /** Forces SYNTHESIA, or leaves it for IDLE (same as the Stream Deck "manual" messages). */
+  setMode(mode) {
+    if (!this.child) return false;
+    this.child.send({ type: 'mode', mode });
+    return true;
+  }
+
   panic(source) {
     if (!this.child) return false;
     this.child.send({ type: 'panic', source });

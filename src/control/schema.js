@@ -9,6 +9,7 @@ const GROUPS = [
   { id: 'mapping', label: 'Mapping notes → LEDs', icon: 'map', hint: 'Correspondance entre notes MIDI et index de LED.' },
   { id: 'midi', label: 'Ports MIDI', title: 'Configuration des sources', icon: 'plug', hint: 'Clavier, Synthesia et routage.' },
   { id: 'pitch', label: 'Transposition & octave', icon: 'music', hint: 'Appliqué à chaud. Synthesia ne doit appliquer aucun décalage de son côté : tout est géré ici et par le PSR. Les LED et la validation Synthesia restent dans la tonalité des morceaux.' },
+  { id: 'mode', label: 'Mode LED', icon: 'music', hint: 'Mode au démarrage du service. Le mode peut ensuite changer en cours de route (Stream Deck, lecteur d’accords).' },
   { id: 'misc', label: 'Divers', icon: 'cog', hint: 'Pédale de sustain, logs.' },
 ];
 
@@ -59,6 +60,7 @@ const FIELDS = [
   { key: 'KEYBOARD_PHYSICAL_TRANSPOSE_SEMITONES', group: 'pitch', hot: true, type: 'int', label: 'Compensation clavier : transposition', unit: 'demi-tons', help: 'Transposition réellement appliquée par le PSR sur son MIDI OUT. Les notes sont ramenées à la touche physique avant Synthesia et les LED.', def: '0', min: -12, max: 12 },
   { key: 'KEYBOARD_PHYSICAL_OCTAVE_SHIFT', group: 'pitch', hot: true, type: 'int', label: 'Compensation clavier : octave', unit: 'octaves', help: 'Décalage d’octave réellement appliqué par le PSR sur son MIDI OUT. Un seul décalage global (Split/Dual avec octaves différentes non géré).', def: '0', min: -3, max: 3 },
 
+  { key: 'DEFAULT_MODE', group: 'mode', type: 'enum', label: 'Mode par défaut', help: 'IDLE : clavier + vague arc-en-ciel, passe en karaoké dès qu’un accord arrive · SYNTHESIA : forcé, ignore le lecteur d’accords jusqu’à un idle manuel · KARAOKE : LEDs pilotées par les accords du lecteur.', def: 'IDLE', options: ['IDLE', 'SYNTHESIA', 'KARAOKE'] },
   { key: 'SUSTAIN_MODE', group: 'misc', type: 'enum', label: 'Pédale de sustain', help: 'keys : suit les touches · sound : reste allumé tant que la pédale tient.', def: 'keys', options: ['keys', 'sound'] },
   { key: 'LOG_LEVEL', group: 'misc', type: 'enum', label: 'Niveau de logs', help: '', def: 'info', options: ['error', 'warn', 'info', 'debug'] },
 ];

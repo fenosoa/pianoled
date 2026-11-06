@@ -140,6 +140,11 @@ function createControlServer({ baseDir = process.cwd(), runner, store, staticDir
         const env = Object.fromEntries(FIELDS.filter((f) => f.hot).map((f) => [f.key, merged[f.key]]));
         return send(res, 200, { ...check, saved: true, applied: runner.setPitch(loadPitch(env)) });
       }
+      case 'POST /api/mode': {
+        const { mode } = await readJson(req);
+        if (mode !== 'IDLE' && mode !== 'SYNTHESIA') return send(res, 422, { error: 'mode must be IDLE or SYNTHESIA' });
+        return send(res, 200, { sent: runner.setMode(mode) });
+      }
       case 'POST /api/panic': {
         const { source } = await readJson(req);
         return send(res, 200, { sent: runner.panic(source) });
