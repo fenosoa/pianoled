@@ -25,6 +25,7 @@
     "demo:all:dry": "node src/cli/simulate.js all --dry-run",
     "start": "node src/cli/run.js",
     "control": "node src/cli/control.js",
+    "ui:run": "node src/cli/control.js",
     "ui:install": "npm --prefix ui install",
     "ui:build": "npm --prefix ui run build",
     "ui:dev": "npm --prefix ui run dev",
