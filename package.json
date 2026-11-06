@@ -26,6 +26,8 @@
     "start": "node src/cli/run.js",
     "control": "node src/cli/control.js",
     "ui:run": "node src/cli/control.js",
+    "ui:stop": "sh deploy/ui-stop.sh",
+    "ui:restart": "sh deploy/ui-stop.sh; sleep 1; node src/cli/control.js",
     "ui:install": "npm --prefix ui install",
     "ui:build": "npm --prefix ui run build",
     "ui:dev": "npm --prefix ui run dev",
