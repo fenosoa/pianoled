@@ -125,6 +125,7 @@ class KaraokeController {
   }
 
   onDisconnect() {
+    if (this.mode === 'SYNTHESIA') return; // forced synthesia never depends on the websocket
     this.enterIdle('websocket disconnected');
   }
 

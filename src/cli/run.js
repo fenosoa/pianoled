@@ -50,9 +50,10 @@ async function main() {
   const karaokeCfg = loadKaraokeConfig();
   let karaoke = null;
   let karaokeSocket = null;
+  // The controller always exists (forced SYNTHESIA / IDLE must work without a websocket); only the chord feed needs the socket.
+  karaoke = new KaraokeController({ engine, config: karaokeCfg, logger });
+  karaoke.applyDefaultMode(config.defaultMode);
   if (karaokeCfg.enabled || args.karaoke) {
-    karaoke = new KaraokeController({ engine, config: karaokeCfg, logger });
-    karaoke.applyDefaultMode(config.defaultMode);
     karaokeSocket = new KaraokeSocket({
       url: karaokeCfg.wsUrl,
       logger,
